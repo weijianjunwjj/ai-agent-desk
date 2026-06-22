@@ -36,7 +36,7 @@
 
 ## 活跃卡点（blocker）
 
-- 无（非阻塞）：唯一事实源文件名是 `docs/AI_Agent_Desk_PRD_v0.3.1_FROZEN.md`，但 `CLAUDE.md` / `AGENTS.md` / PRD §3.1 里写的是 `docs/PRD.md`。内容齐全，不影响实现；是否要改名或加别名留给人类裁决（未擅自改）。
+- 无。（已解决）原先唯一事实源文件名 `docs/AI_Agent_Desk_PRD_v0.3.1_FROZEN.md` 与 `CLAUDE.md` / `AGENTS.md` / PRD §3.1 的引用 `docs/PRD.md` 不一致；人类已将其重命名为 `docs/PRD.md`，现与所有引用一致。
 
 ## 给下一个 Agent 的备注
 
