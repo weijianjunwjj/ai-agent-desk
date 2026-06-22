@@ -1,0 +1,10 @@
+{
+  "//": "Workspace project map for IDEs / tooling. Type checking is run per-package via `pnpm -r typecheck`; cross-package resolution uses the `paths` in tsconfig.base.json.",
+  "files": [],
+  "references": [
+    { "path": "packages/shared" },
+    { "path": "packages/mock-ai" },
+    { "path": "apps/web" },
+    { "path": "apps/mobile" }
+  ]
+}

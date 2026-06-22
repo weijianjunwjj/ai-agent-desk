@@ -6,21 +6,21 @@
 
 ## 当前状态
 
-- 当前 Step：**尚未开始（从 Step 1 开始）**
-- 子状态：not started
-- 最后工作的 Agent：—
-- 最后 commit：—
-- 当前分支：—
+- 当前 Step：**Step 1 已完成，等待人类评审**（评审通过前不要开始 Step 2）
+- 子状态：done — monorepo 骨架与工程配置就绪，`pnpm install` + `pnpm -w check` 全绿
+- 最后工作的 Agent：Claude Code（Opus）
+- 最后 commit：`Step 1: monorepo 骨架与工程配置`
+- 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：未运行
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest passWithNoTests）
 
 ## 下一步（接手者先做这个）
 
-> 读 `docs/PRD.md` §14 Step 1，建立 monorepo 基础：pnpm workspaces + `apps/web` + `apps/mobile` + `packages/shared` + `packages/mock-ai`，并完成工程配置（`.npmrc` `node-linker=hoisted` 或 metro `watchFolders`+`nodeModulesPaths`；shared/mock-ai 用 `exports` 指向 `./src/index.ts`；配 tsconfig path/references）。
+> ⏸ **先等人类评审通过 Step 1。** 通过后再做 §14 Step 2：在 `packages/shared` 定义 Zod-first 类型与 schema（枚举 → 参数 schema + `TOOL_ACTION_PARAMS_SCHEMAS` 注册表 → ToolAction 判别联合 → AIAnalysis → Conversation/Customer/Message → TimelineEvent → ApprovalTask），并加审批分流策略 `MOBILE_APPROVAL_RISK_THRESHOLD` + `requiresMobileApproval`（见 PRD §10 / §5.2）。types 一律 `z.infer` 派生，不写平行 interface。随该 Step 补 §12 契约测试（分流 low→Web、medium/high→RN）。
 
 ## Step 清单（对应 PRD §14）
 
-- [ ] Step 1 — monorepo 基础（.npmrc / metro / exports / tsconfig references）
+- [x] Step 1 — monorepo 基础（.npmrc / metro / exports / tsconfig references）
 - [ ] Step 2 — shared 类型与 Zod schema（Zod-first + `TOOL_ACTION_PARAMS_SCHEMAS` + 分流策略）
 - [ ] Step 3 — XState `approvalMachine`（§9.3 全部转移，含 CANCEL）
 - [ ] Step 4 — Mock LLM Adapter（过 `AIAnalysisSchema` + fallback）
@@ -36,8 +36,10 @@
 
 ## 活跃卡点（blocker）
 
-- 无
+- 无（非阻塞）：唯一事实源文件名是 `docs/AI_Agent_Desk_PRD_v0.3.1_FROZEN.md`，但 `CLAUDE.md` / `AGENTS.md` / PRD §3.1 里写的是 `docs/PRD.md`。内容齐全，不影响实现；是否要改名或加别名留给人类裁决（未擅自改）。
 
 ## 给下一个 Agent 的备注
 
-- （首次开工，暂无）
+- Step 1 仅骨架，无业务代码：`packages/shared`、`packages/mock-ai` 的 `src/index.ts` 只是占位常量；`apps/web`、`apps/mobile` 只有最小可编译外壳。
+- 质量闸门跑法：根目录 `pnpm -w check`（= `typecheck` + `lint` + `test`）。typecheck 是 `pnpm -r tsc --noEmit`，跨包靠 `tsconfig.base.json` 的 `paths` 解析 TS 源码；root `tsconfig.json` 的 `references` 仅供 IDE / 工作区图谱（check 不跑 `tsc -b`）。
+- 实现级决策见 `docs/DECISIONS.md`（包命名、版本、metro/eslint 取舍），Step 2 起请沿用。
