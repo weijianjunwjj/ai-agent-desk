@@ -14,10 +14,12 @@
     "@ai-agent-desk/shared": "workspace:*",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@tanstack/react-query": "^5.101.0",
+    "@xstate/react": "^6.1.0",
     "antd": "^5.29.3",
     "react": "19.1.0",
     "react-dom": "19.1.0",
     "react-router-dom": "^7.18.0",
+    "xstate": "^5.32.1",
     "zustand": "^5.0.14"
   },
   "devDependencies": {

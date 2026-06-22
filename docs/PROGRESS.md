@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 6 已完成，等待人类评审**（评审通过前不要开始 Step 7）
-- 子状态：done — Web 侧 AI 分析触发链路打通：触发 → `mockLLMAdapter` → AIAnalysis + ToolAction 渲染 + §5.2 分流标注 + fallback UI（dev 预览实测通过）
+- 当前 Step：**Step 7 已完成，等待人类评审**（评审通过前不要开始 Step 8）
+- 子状态：done — 承重墙 ToolApprovalCard：XState 绑定 + schema 驱动表单/diff + 全状态 UI + Timeline 写入 + §5.2 分流约束（dev 预览实测通过）
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 6: AI 分析触发（mockLLMAdapter → AIAnalysis + ToolAction 渲染 + 分流标注）`
+- 最后 commit：`Step 7: ToolApprovalCard（XState 绑定 + schema 驱动表单/diff + Timeline 写入）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；dev 预览实测：触发→建议→两动作（RN/Web 分流）渲染 ✅ 无 console 错误
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；dev 预览实测：suggested/editing(schema 表单+diff)/executing→rollback 全程渲染 ✅、§5.2 分流（send_coupon RN 禁批 / followup Web 可批）✅、Timeline 写入 ✅、无 console 错误
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 6。** 通过后再做 §14 Step 7：**承重墙 ToolApprovalCard**（PRD §9）。把 Step 6 的 `SuggestedActionPreview` 升级为真正的审批卡：用 `@xstate/react`（`useMachine`/`useActor`）绑定 shared 的 `approvalMachine`（一个 ToolAction 一台实例）；editing 态用 `TOOL_ACTION_PARAMS_SCHEMAS[action.type]` **schema 驱动**渲染参数表单（不硬编码字段，§9.5），编辑写 `editedParams` 草稿、支持 `originalParams` vs 草稿 diff、SAVE 时 Zod 校验通过再写回 `params`；各状态（suggested/editing/executing/success/failed/rejected/rollback）UI 呈现；**每个关键动作写入 Timeline**（§6.1.5 / §9.5）。React19 hook（useActionState/useOptimistic）只用于表现层，状态流转归 XState（ADR-0001 红线）。注意：低风险动作（create_followup_task）走 Web 审批可在卡上操作；medium/high（send_coupon）在 Web 只可看/改参不可批（§5.2），其完整裁决在 RN（Step 9）。失败演示用 Header 的「强制执行失败」开关（Step 8 接线）。
+> ⏸ **先等人类评审通过 Step 7。** 通过后再做 §14 Step 8：打通 Web 闭环（§5.1 低风险分支 + §8 端到端）。要点：把会话 `status` 随动作生命周期联动更新（如 approved→executing 时 waiting_approval/处理中、success→followed_up 等，写 `conversation_status_updated` Timeline）；确保 failed→rollback 用 Header「强制执行失败」开关做确定性演示（开关已接 store + 卡内执行已读取，验证整链）；会话列表 pendingActionCount 等随状态刷新；保证「AI 建议→改参→确认→executing→success/(failed→rollback)→Timeline」整条链路在 demo 中连贯。注意承重墙已成型，Step 8 是整合与状态联动，别重写卡。RN（Step 9）才做 send_coupon 的移动端裁决。
 
 ## Step 清单（对应 PRD §14）
 
@@ -26,7 +26,7 @@
 - [x] Step 4 — Mock LLM Adapter（过 `AIAnalysisSchema` + fallback）
 - [x] Step 5 — Web 工作台三栏骨架
 - [x] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
-- [ ] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
+- [x] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
 - [ ] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
 - [ ] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
 - [ ] Step 10 — Expo Notifications 模拟推送链路
@@ -50,4 +50,6 @@
 - Step 5 仅骨架：AI 建议区是占位 Alert，审批卡未做；Header 的「强制执行失败」开关已接 store 但 Step 8 才生效。`.claude/launch.json` 配了 web dev（端口 5174）供预览/`/run`。
 - Step 6 产物：`api/workbench-queries.ts` 加 `useAnalysis`（读）+ `useTriggerAnalysis`（mutation 调 `mockLLMAdapter`，写 `mock/analysis-store.ts` 内存库 + `setQueryData`）。`features/workbench/AiSuggestionPanel.tsx`（触发按钮 / §7.4 展示 / fallback Alert / `App.useApp()` toast）+ `SuggestedActionPreview.tsx`（动作只读预览 + `requiresMobileApproval` 分流徽标）。`ConversationDetailPanel` 用 AiSuggestionPanel 替换占位。labels 加 SENTIMENT/TOOL_ACTION_TYPE。
 - 注意（设计使然，已记 DECISIONS）：mock 为单一固定场景，**任意会话触发都返回 §11.3 price_negotiation**；demo 用张女士这条。SuggestedActionPreview 是只读预览，Step 7 升级为带状态机的 ToolApprovalCard。
-- 实现级决策见 `docs/DECISIONS.md`，Step 7 起请沿用。
+- Step 7 产物：`features/workbench/ToolApprovalCard.tsx`（`useMachine(approvalMachine)`，一动作一实例；状态归 XState，React state 仅存 params/draft/errors/failedReason 表现数据）。`SchemaParamsForm.tsx` + `lib/schema-fields.ts`（读 zod v3 `_def` 内省，按 `TOOL_ACTION_PARAMS_SCHEMAS[type]` 渲染，不硬编码字段）。`SuggestedActionPreview.tsx` 改为只读 body（被卡复用）。`mock/timeline-store.ts` + `useTimelineWriter`：卡在 SAVE/APPROVE/executing/success/failed/rollback/reject 写 Timeline；触发时写 ai_analysis_created + tool_action_suggested。执行用 `useEffect`（status==='executing'）+ setTimeout，按 `forceNextExecutionFailure` 确定性决定成败并一次性复位。
+- 关键约束守住：状态机不散落（§12.3）；schema 驱动表单（§9.5）；§5.2 分流——medium/high 在 Web 禁批（确认/拒绝 disabled + 说明），low 可批。React19 hooks 未用于状态流转（ADR-0001 红线）。
+- 实现级决策见 `docs/DECISIONS.md`，Step 8 起请沿用。

@@ -1,16 +1,24 @@
 import type { ToolAction } from '@ai-agent-desk/shared';
 import { requiresMobileApproval } from '@ai-agent-desk/shared';
 import { Card, Descriptions, Space, Tag, Typography } from 'antd';
+import type { ReactNode } from 'react';
 
 import { RISK_LEVEL_COLORS, RISK_LEVEL_LABELS, TOOL_ACTION_TYPE_LABELS } from '../../lib/labels';
 
-// Read-only preview of a suggested ToolAction (Step 6). It shows the routing
-// decision (PRD §5.2): medium/high → RN, low → Web. The interactive
-// ToolApprovalCard (state machine, edit/diff/approve/execute/rollback) replaces
-// this in Step 7.
-export function SuggestedActionPreview({ action }: { action: ToolAction }) {
+interface Props {
+  action: ToolAction;
+  // Current effective params (may differ from action.params after an edit).
+  params?: Record<string, unknown>;
+  // Status-specific footer (banner + controls) rendered by ToolApprovalCard.
+  children?: ReactNode;
+}
+
+// Read-only body of a ToolAction: header tags (type / risk / routing per §5.2),
+// AI reason, and the current parameters. Shared by ToolApprovalCard across all
+// non-editing states.
+export function SuggestedActionPreview({ action, params, children }: Props) {
   const onMobile = requiresMobileApproval(action.riskLevel);
-  const params = action.params as Record<string, unknown>;
+  const effectiveParams = params ?? (action.params as Record<string, unknown>);
 
   return (
     <Card
@@ -35,15 +43,13 @@ export function SuggestedActionPreview({ action }: { action: ToolAction }) {
       <Descriptions
         size="small"
         column={1}
-        items={Object.entries(params).map(([key, value]) => ({
+        items={Object.entries(effectiveParams).map(([key, value]) => ({
           key,
           label: key,
           children: String(value),
         }))}
       />
-      <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        可编辑 / 审批 / 执行 / 回滚的审批卡将在 Step 7 接入。
-      </Typography.Text>
+      {children}
     </Card>
   );
 }

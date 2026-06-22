@@ -69,6 +69,11 @@
 - 背景：PRD §7.1 规定三栏与 Header 内容、§3.2 钉技术栈、§12 分 server/UI 状态；目录划分 PRD 未规定。无法用 rm 删除占位 `App.tsx`（sandbox 拒绝），故改造为 app 根组件由 router 渲染。
 - 由：CC
 
+### 2026-06-22 · Step 7 · ToolApprovalCard 实现取舍
+- 决策：卡用 `@xstate/react` 的 `useMachine(approvalMachine)` 绑定（一动作一实例）；**状态只归 XState**，React `useState` 仅持表现数据（params/draft/errors/failedReason/executedAt）。schema 驱动表单靠 `lib/schema-fields.ts` 读 **zod v3 `_def.typeName/checks/values`** 内省（zod v4 改了内省，故又一处依赖 v3）。执行 I/O 放 app 层 `useEffect`（监听 status==='executing'）+ setTimeout，用 cleanup 防 StrictMode 重复，按 `forceNextExecutionFailure` 确定性决定成败并一次性复位（机器保持纯净，不在 shared 里 invoke）。Timeline 写入在各事件 handler 与执行回调里（非 status effect，避免重复写）。`SuggestedActionPreview` 复用为只读 body（无法 rm 删文件，故复用而非废弃）。机器状态不跨重挂载持久化（demo 线性操作，已知简化）。
+- 背景：PRD §9/§9.5/§12.3 要求 schema 驱动、状态归状态机、shared 纯净；ADR-0001 红线 React19 hooks 不管业务状态。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。

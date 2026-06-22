@@ -3,7 +3,7 @@ import { Alert, App, Button, Card, Empty, Space, Spin, Tag, Typography } from 'a
 
 import { useAnalysis, useTriggerAnalysis } from '../../api/workbench-queries';
 import { RISK_LEVEL_COLORS, RISK_LEVEL_LABELS, SENTIMENT_LABELS } from '../../lib/labels';
-import { SuggestedActionPreview } from './SuggestedActionPreview';
+import { ToolApprovalCard } from './ToolApprovalCard';
 
 // AI 建议区 (PRD §7.4): triggers analysis and renders intent / sentiment /
 // summary / suggestedReply / riskLevel / nextActions. Output comes only from the
@@ -83,11 +83,11 @@ export function AiSuggestionPanel({ conversationId }: { conversationId: string }
 
         <div>
           <Typography.Text strong>建议动作（{analysis.nextActions.length}）</Typography.Text>
-          <Space direction="vertical" size="small" style={{ width: '100%', marginTop: 8 }}>
+          <div style={{ marginTop: 8 }}>
             {analysis.nextActions.map((action) => (
-              <SuggestedActionPreview key={action.id} action={action} />
+              <ToolApprovalCard key={action.id} action={action} />
             ))}
-          </Space>
+          </div>
         </div>
       </Space>
     </Card>

@@ -1,16 +1,14 @@
 // TanStack Query hooks over the mock fixtures (PRD §12.1). A small delay
 // simulates async fetching so loading states are exercised. Real mutations
 // (AI trigger, approval) arrive in Step 6+.
-import { DEMO_CUSTOMER_MESSAGE, mockLLMAdapter } from '@ai-agent-desk/mock-ai';
+import type { TimelineEvent } from '@ai-agent-desk/shared';
+import { DEMO_CUSTOMER_MESSAGE, isFallbackAnalysis, mockLLMAdapter } from '@ai-agent-desk/mock-ai';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useCallback } from 'react';
 
 import { analysisStore } from '../mock/analysis-store';
-import {
-  conversations,
-  customers,
-  messagesByConversation,
-  timelineByConversation,
-} from '../mock/fixtures';
+import { conversations, customers, messagesByConversation } from '../mock/fixtures';
+import { createTimelineEvent, timelineStore } from '../mock/timeline-store';
 
 function resolveLater<T>(value: T): Promise<T> {
   return new Promise((resolve) => {
@@ -43,9 +41,22 @@ export function useMessages(conversationId: string | null) {
 export function useTimeline(conversationId: string | null) {
   return useQuery({
     queryKey: ['timeline', conversationId],
-    queryFn: () => resolveLater(timelineByConversation[conversationId ?? ''] ?? []),
+    queryFn: () => resolveLater(timelineStore.get(conversationId ?? '')),
     enabled: Boolean(conversationId),
   });
+}
+
+// Appends a Timeline event and refreshes the timeline query (PRD §6.1.5).
+// Used by ToolApprovalCard on key transitions.
+export function useTimelineWriter() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (event: TimelineEvent) => {
+      timelineStore.append(event);
+      void queryClient.invalidateQueries({ queryKey: ['timeline', event.conversationId] });
+    },
+    [queryClient],
+  );
 }
 
 // Reads the generated AIAnalysis for a conversation (PRD §12.1 aiAnalysis as
@@ -85,6 +96,32 @@ export function useTriggerAnalysis(conversationId: string | null) {
     },
     onSuccess: (analysis) => {
       queryClient.setQueryData(['analysis', conversationId], analysis);
+      if (!isFallbackAnalysis(analysis)) {
+        timelineStore.append(
+          createTimelineEvent({
+            conversationId: analysis.conversationId,
+            eventType: 'ai_analysis_created',
+            title: 'AI 分析完成',
+            description: analysis.summary,
+            operatorType: 'ai',
+            operatorName: 'Mock LLM',
+          }),
+        );
+        for (const action of analysis.nextActions) {
+          timelineStore.append(
+            createTimelineEvent({
+              conversationId: analysis.conversationId,
+              actionId: action.id,
+              eventType: 'tool_action_suggested',
+              title: `AI 建议：${action.title}`,
+              description: action.reason,
+              operatorType: 'ai',
+              operatorName: 'Mock LLM',
+            }),
+          );
+        }
+      }
+      void queryClient.invalidateQueries({ queryKey: ['timeline', conversationId] });
     },
   });
 }
