@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 4 已完成，等待人类评审**（评审通过前不要开始 Step 5）
-- 子状态：done — `packages/mock-ai` Mock LLM Adapter（固定 §11.3 demo → 过 `AIAnalysisSchema` + fallback）+ 契约测试就绪
+- 当前 Step：**Step 5 已完成，等待人类评审**（评审通过前不要开始 Step 6）
+- 子状态：done — `apps/web` 三栏工作台骨架（AntD v5 + RR7 + TanStack Query + Zustand）渲染通过（dev 预览截图确认，无 console 错误）
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 4: Mock LLM Adapter（固定 §11.3 demo + AIAnalysisSchema 校验 + fallback）`
+- 最后 commit：`Step 5: Web 三栏工作台骨架（AntD v5 + RR7 + TanStack Query + Zustand）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest：21 passed = 分流 4 + 状态机 11 + 适配器 6）
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；web `vite build` ✅；dev 预览渲染 ✅ 无 console 错误
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 4。** 通过后再做 §14 Step 5：搭 `apps/web` 三栏工作台骨架（PRD §7.1）：Header（标题/状态筛选/Demo 入口）+ 会话列表 + 消息流+AI 建议 + 客户上下文+Timeline 区域。技术栈用既定 Vite+React+TS+React Router+TanStack Query+Zustand+**AntD v5**；AntD 接入时按 ADR-0001 加 `@ant-design/v5-patch-for-react-19` 并在入口 import。Step 5 只搭骨架与布局，**不实现 AI 触发/审批逻辑**（那是 Step 6/7）。mock 数据可先用静态占位，真实 AI 触发走 `mockLLMAdapter`（已就绪）。
+> ⏸ **先等人类评审通过 Step 5。** 通过后再做 §14 Step 6：实现 AI 分析触发。选中会话 → 触发客户消息 → 调 `mockLLMAdapter.analyzeConversation`（已就绪，走 TanStack Query mutation）→ 生成 `AIAnalysis` + `ToolAction`。把结果写进消息流（ai_suggestion 消息）与右栏，并据 `requiresMobileApproval(action.riskLevel)` 标注分流；fallback（`isFallbackAnalysis`）要有 UI。ToolApprovalCard 本体留到 Step 7。注意承重墙优先：别铺浅页面，先把触发→建议→（后续）审批这条链路做实。当前 AI 建议区是占位 Alert（`ConversationDetailPanel.tsx`），Step 6 替换为真实建议渲染。
 
 ## Step 清单（对应 PRD §14）
 
@@ -24,7 +24,7 @@
 - [x] Step 2 — shared 类型与 Zod schema（Zod-first + `TOOL_ACTION_PARAMS_SCHEMAS` + 分流策略）
 - [x] Step 3 — XState `approvalMachine`（§9.3 全部转移，含 CANCEL）
 - [x] Step 4 — Mock LLM Adapter（过 `AIAnalysisSchema` + fallback）
-- [ ] Step 5 — Web 工作台三栏骨架
+- [x] Step 5 — Web 工作台三栏骨架
 - [ ] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
 - [ ] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
 - [ ] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
@@ -46,4 +46,6 @@
 - 质量闸门跑法：根目录 `pnpm -w check`（= `typecheck` + `lint` + `test`）。跨包靠 `tsconfig.base.json` 的 `paths` 解析 TS 源码；root `tsconfig.json` 的 `references` 仅供 IDE。React/Expo 基线见 `docs/adr/0001-adopt-react-19.md`（Accepted）。
 - Step 3 产物：`packages/shared/src/approval-machine.ts`（XState v5 `setup().createMachine`），barrel 已导出。`approved` 用 `always` 建模瞬时态（APPROVE 后直达 executing）；`rejected`/`rollback` 为无出向终态。机器纯净：无 guard、无 I/O；副作用（Timeline/执行/校验）留 app 层。绑定库 `@xstate/react`（apps 用，shared 不引）。状态机文档见 `docs/STATE_MACHINE.md`。
 - Step 4 产物：`packages/mock-ai/src`（`types`/`adapter`/`fallback`/barrel）。`mockLLMAdapter.analyzeConversation` 单一固定场景（§11.3 price_negotiation，非空消息即返回），构建 candidate 后 `AIAnalysisSchema.parse` 作类型闸门；初始化 `originalParams=params`、`editedParams` 留空、`status=suggested`。fallback：空消息或异常 → `createFallbackAnalysis`（sentinel intent `analysis_unavailable`，`isFallbackAnalysis` 检测），仍过 schema。导出 `DEMO_CUSTOMER_MESSAGE` 供 Step 6 复用。
-- 实现级决策见 `docs/DECISIONS.md`，Step 5 起请沿用。
+- Step 5 产物（`apps/web/src`）：`main.tsx`（首行 import AntD React19 patch）→ `app/providers.tsx`（QueryClient + ConfigProvider + AntD `App`）→ `app/router.tsx`（RR7 单路由 `/` → `App` → `WorkbenchLayout`）。状态：`store/workbench-store.ts`（Zustand：selectedConversationId / statusFilter / forceNextExecutionFailure）。数据：`mock/fixtures.ts`（静态占位，typed against shared；含张女士 price 案，复用 mock-ai 的 `DEMO_CUSTOMER_MESSAGE`）+ `api/workbench-queries.ts`（TanStack Query 包装）。布局：`features/workbench/`（WorkbenchLayout/Header/ConversationListPanel/ConversationDetailPanel/CustomerContextPanel）。`lib/labels.ts`+`lib/format.ts` 工具。
+- Step 5 仅骨架：AI 建议区是占位 Alert，审批卡未做；Header 的「强制执行失败」开关已接 store 但 Step 8 才生效。`.claude/launch.json` 配了 web dev（端口 5174）供预览/`/run`。
+- 实现级决策见 `docs/DECISIONS.md`，Step 6 起请沿用。

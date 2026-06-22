@@ -1,0 +1,14 @@
+/* Minimal layout reset so the AntD full-height workbench fills the viewport.
+   Not a theme system / dark mode (PRD §13 out of scope) — just html/body sizing. */
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'PingFang SC',
+    'Microsoft YaHei', sans-serif;
+}

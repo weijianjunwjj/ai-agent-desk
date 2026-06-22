@@ -64,6 +64,11 @@
 - 背景：PRD §11 要求纯 TS、过 Zod、初始化 original/edited、提供 fallback；§11.3 只规定单一 demo case，故不发明第二场景。
 - 由：CC
 
+### 2026-06-22 · Step 5 · Web 目录结构与 provider 组织
+- 决策：`apps/web/src` 按 `app/`（providers + router）、`features/<domain>/`（组件，PascalCase）、`store/`（Zustand）、`api/`（TanStack Query hooks）、`mock/`（静态 fixtures）、`lib/`（labels/format 工具）分层。Provider 顺序：`QueryClientProvider` > AntD `ConfigProvider` > AntD `App`（用 `App.useApp()` 上下文式反馈，配合 React19 patch）。RR7 用 `createBrowserRouter`，单路由 `/`→`App`→`WorkbenchLayout`；会话选择放 Zustand（§12.2）而非 URL，深链留后续。三栏用 AntD `Layout`（Header + 左右 `Sider` + `Content`）。`@ant-design/v5-patch-for-react-19` 在 `main.tsx` 首行 import。
+- 背景：PRD §7.1 规定三栏与 Header 内容、§3.2 钉技术栈、§12 分 server/UI 状态；目录划分 PRD 未规定。无法用 rm 删除占位 `App.tsx`（sandbox 拒绝），故改造为 app 根组件由 router 渲染。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。

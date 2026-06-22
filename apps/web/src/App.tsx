@@ -1,6 +1,7 @@
-// Scaffold placeholder for Step 1. The real three-column workbench
-// (conversation list / message stream + AI suggestions / customer context +
-// Timeline) is built in Step 5 onward (PRD §7).
+import { WorkbenchLayout } from './features/workbench/WorkbenchLayout';
+
+// App root — composes the workbench. Providers (Query / AntD) are applied in
+// main.tsx; routing is defined in app/router.tsx.
 export default function App() {
-  return <div>AI Agent Desk — Web workbench (scaffold)</div>;
+  return <WorkbenchLayout />;
 }
