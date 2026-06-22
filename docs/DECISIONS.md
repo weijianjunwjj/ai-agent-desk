@@ -23,10 +23,16 @@
 - 由：CC
 -->
 
-### 2026-06-22 · Step 1 · 包命名与版本基线
-- 决策：workspace 包统一用 scope `@ai-agent-desk/*`（`shared` / `mock-ai` / `web` / `mobile`），互相依赖用 `workspace:*`。工具链基线：TypeScript ^5.7、ESLint 9（flat config）+ typescript-eslint 8、Vitest 2、Vite 6 + React 18.3、Expo SDK 52 + RN 0.76.5（React 18.3.1）。pnpm 经 `packageManager` 钉在 9.15.2。
-- 背景：PRD 未规定包名前缀与具体版本。React 在 web(^18.3.1) 与 mobile(18.3.1, Expo 钉版) 同主版本，配合 `node-linker=hoisted` 单实例 hoist。
+### 2026-06-22 · Step 1 · 包命名与工具链基线
+- 决策：workspace 包统一用 scope `@ai-agent-desk/*`（`shared` / `mock-ai` / `web` / `mobile`），互相依赖用 `workspace:*`。工具链基线：TypeScript ^5.7、ESLint 9（flat config）+ typescript-eslint 8、Vitest 2、Vite 6。pnpm 经 `packageManager` 钉在 9.15.2。React / Expo 基线见下方「React/Expo 基线（ADR-0001 Accepted）」条。
+- 背景：PRD 未规定包名前缀与具体版本。
 - 由：CC
+
+### 2026-06-22 · Step 1 · React/Expo 基线（ADR-0001 Accepted）
+- 决策：React 19.1 + Expo SDK 54（RN 0.81）；Web 精确对齐 mobile 经 expo install 推导的 React 版本，hoisted 单实例；AntD 留 v5 + @ant-design/v5-patch-for-react-19（入口 import）。
+- 边界：React 19 的 useActionState/useOptimistic/use 仅限 UI 表现层；ToolAction 状态仍归 XState（§12.3）。
+- 背景：PRD §3 未钉 React 主版本；现 mobile 仅骨架，切换成本最低。
+- 由：人类批准 + Claude/GPT 评审。
 
 ### 2026-06-22 · Step 1 · TS 解析（path vs references）
 - 决策：跨包类型解析靠 `tsconfig.base.json` 的 `paths`（指向各包 `src/index.ts` 源码）；各包 `tsconfig.json` 用 `tsc --noEmit`、**不写 `references` 字段**（避免 composite 约束）。根 `tsconfig.json` 保留 `references` 数组，仅作 IDE / 工作区项目图谱，质量闸门不跑 `tsc -b`。各包 `exports`/`main`/`types` 直指 `./src/index.ts`，让 Vite(esbuild) 与 Metro 直接吃 TS 源码、免构建。
