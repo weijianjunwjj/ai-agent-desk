@@ -6,22 +6,22 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 1 已完成，等待人类评审**（评审通过前不要开始 Step 2）
-- 子状态：done — monorepo 骨架与工程配置就绪，`pnpm install` + `pnpm -w check` 全绿
+- 当前 Step：**Step 2 已完成，等待人类评审**（评审通过前不要开始 Step 3）
+- 子状态：done — `packages/shared` 全套 Zod-first schema/types + 审批分流策略就绪；React 19.1 + Expo SDK 54 基线已落地（ADR-0001）
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 1: monorepo 骨架与工程配置`
+- 最后 commit：`Step 2: shared 类型与 Zod schema + 审批分流策略`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest passWithNoTests）
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest：分流契约测试 4 passed）
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 1。** 通过后再做 §14 Step 2：在 `packages/shared` 定义 Zod-first 类型与 schema（枚举 → 参数 schema + `TOOL_ACTION_PARAMS_SCHEMAS` 注册表 → ToolAction 判别联合 → AIAnalysis → Conversation/Customer/Message → TimelineEvent → ApprovalTask），并加审批分流策略 `MOBILE_APPROVAL_RISK_THRESHOLD` + `requiresMobileApproval`（见 PRD §10 / §5.2）。types 一律 `z.infer` 派生，不写平行 interface。随该 Step 补 §12 契约测试（分流 low→Web、medium/high→RN）。
+> ⏸ **先等人类评审通过 Step 2。** 通过后再做 §14 Step 3：在 `packages/shared` 实现 XState v5 `approvalMachine`，覆盖 §9.3 全部转移（含 `editing --CANCEL--> suggested`；`approved` 瞬时态批准即 EXECUTE；`rejected` 终态仅从 suggested 进入）。一个 ToolAction 一个实例；machine 定义放 shared，`@xstate/react` 绑定留给各 app（shared 不引 react）。随该 Step 补 §12 契约测试：`suggested→approved→executing→success`、`executing→failed→rollback`、`editing→CANCEL→suggested`。并产出 `docs/STATE_MACHINE.md`（Step 3 / Step 11）。
 
 ## Step 清单（对应 PRD §14）
 
 - [x] Step 1 — monorepo 基础（.npmrc / metro / exports / tsconfig references）
-- [ ] Step 2 — shared 类型与 Zod schema（Zod-first + `TOOL_ACTION_PARAMS_SCHEMAS` + 分流策略）
+- [x] Step 2 — shared 类型与 Zod schema（Zod-first + `TOOL_ACTION_PARAMS_SCHEMAS` + 分流策略）
 - [ ] Step 3 — XState `approvalMachine`（§9.3 全部转移，含 CANCEL）
 - [ ] Step 4 — Mock LLM Adapter（过 `AIAnalysisSchema` + fallback）
 - [ ] Step 5 — Web 工作台三栏骨架
@@ -40,6 +40,8 @@
 
 ## 给下一个 Agent 的备注
 
-- Step 1 仅骨架，无业务代码：`packages/shared`、`packages/mock-ai` 的 `src/index.ts` 只是占位常量；`apps/web`、`apps/mobile` 只有最小可编译外壳。
-- 质量闸门跑法：根目录 `pnpm -w check`（= `typecheck` + `lint` + `test`）。typecheck 是 `pnpm -r tsc --noEmit`，跨包靠 `tsconfig.base.json` 的 `paths` 解析 TS 源码；root `tsconfig.json` 的 `references` 仅供 IDE / 工作区图谱（check 不跑 `tsc -b`）。
-- 实现级决策见 `docs/DECISIONS.md`（包命名、版本、metro/eslint 取舍），Step 2 起请沿用。
+- Step 2 产物：`packages/shared/src` 按 PRD §10 依赖顺序拆文件（`enums` / `tool-action-params` / `tool-action` / `ai-analysis` / `conversation` / `customer` / `message` / `timeline-event` / `approval-task` / `approval-routing`），`index.ts` 统一 barrel 导出。全部 Zod-first，types 由 `z.infer` 派生，无平行 interface。`mock-ai/src/index.ts` 仍是占位（Step 4 才填）。
+- ToolAction 参数严格按 type 定型（判别联合 + `TOOL_ACTION_PARAMS_SCHEMAS` `satisfies` 全覆盖）；唯一允许的 `z.record(z.unknown())` 只在 TimelineEvent 的 before/after snapshot（PRD §10.8）。
+- zod 钉 v3（3.25.76），不上 zod v4：v4 改了 `z.record` 签名，会迫使改动 PRD §10 冻结的 schema 写法。详见 `docs/DECISIONS.md`。
+- 质量闸门跑法：根目录 `pnpm -w check`（= `typecheck` + `lint` + `test`）。跨包靠 `tsconfig.base.json` 的 `paths` 解析 TS 源码；root `tsconfig.json` 的 `references` 仅供 IDE。React/Expo 基线见 `docs/adr/0001-adopt-react-19.md`（Accepted）。
+- 实现级决策见 `docs/DECISIONS.md`，Step 3 起请沿用。

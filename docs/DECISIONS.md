@@ -49,6 +49,11 @@
 - 背景：PRD §12 要求把 shared 不引 UI 的红线自动化为 lint 失败。
 - 由：CC
 
+### 2026-06-22 · Step 2 · shared schema 组织与 zod 版本
+- 决策：`packages/shared/src` 按 PRD §10 依赖顺序一文件一域拆分（`enums` / `tool-action-params` / `tool-action` / `ai-analysis` / `conversation` / `customer` / `message` / `timeline-event` / `approval-task` / `approval-routing`），`index.ts` 仅做 barrel 重导出。契约测试与被测源码同目录（`approval-routing.test.ts`）。zod 钉 **v3（^3.25.76）**，不上 zod v4。
+- 背景：PRD §10 未规定 shared 内部文件划分；一域一文件便于评审对照章节。zod v4 改了 `z.record` 等签名，会迫使改动 PRD §10 冻结的 schema 写法（如 `z.record(z.unknown())`），故留 v3 以忠实复刻冻结数据模型。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。

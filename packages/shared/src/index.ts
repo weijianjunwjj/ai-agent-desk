@@ -1,10 +1,13 @@
-// Entry point for @ai-agent-desk/shared.
-//
-// This package holds ONLY framework-free logic (PRD §3.4 / §13): Zod schemas,
-// derived types, the XState approval machine, shared constants, and the
-// approval-routing policy. It must never import React / react-native / any UI.
-//
-// Scaffold placeholder for Step 1 — real exports arrive in:
-//   - Step 2: types + Zod schemas + TOOL_ACTION_PARAMS_SCHEMAS + requiresMobileApproval (§10 / §5.2)
-//   - Step 3: approvalMachine (§9.3)
-export const SHARED_PACKAGE_NAME = '@ai-agent-desk/shared';
+// Public surface of @ai-agent-desk/shared — framework-free logic only
+// (PRD §3.4 / §13): Zod schemas, z.infer-derived types, approval-routing policy.
+// The XState approval machine (Step 3) is added here next.
+export * from './enums';
+export * from './tool-action-params';
+export * from './tool-action';
+export * from './ai-analysis';
+export * from './conversation';
+export * from './customer';
+export * from './message';
+export * from './timeline-event';
+export * from './approval-task';
+export * from './approval-routing';
