@@ -1,9 +1,10 @@
 import type { Message, SenderType } from '@ai-agent-desk/shared';
-import { Alert, Card, Empty, Spin, Tag, Typography } from 'antd';
+import { Card, Empty, Spin, Tag, Typography } from 'antd';
 
 import { useConversations, useMessages } from '../../api/workbench-queries';
 import { formatDateTime } from '../../lib/format';
 import { useWorkbenchStore } from '../../store/workbench-store';
+import { AiSuggestionPanel } from './AiSuggestionPanel';
 
 const SENDER_LABELS: Record<SenderType, string> = {
   customer: '客户',
@@ -76,14 +77,7 @@ export function ConversationDetailPanel() {
         messages.map((message) => <MessageBubble key={message.id} message={message} />)
       )}
 
-      <Card title="AI 建议与动作审批" style={{ marginTop: 16 }}>
-        <Alert
-          type="info"
-          showIcon
-          message="AI 建议区（骨架）"
-          description="选择会话后触发 AI 分析，将在此生成结构化建议回复与 ToolApprovalCard（Step 6 接入触发、Step 7 接入审批卡）。"
-        />
-      </Card>
+      <AiSuggestionPanel conversationId={selectedId} />
     </div>
   );
 }

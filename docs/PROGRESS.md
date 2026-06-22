@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 5 已完成，等待人类评审**（评审通过前不要开始 Step 6）
-- 子状态：done — `apps/web` 三栏工作台骨架（AntD v5 + RR7 + TanStack Query + Zustand）渲染通过（dev 预览截图确认，无 console 错误）
+- 当前 Step：**Step 6 已完成，等待人类评审**（评审通过前不要开始 Step 7）
+- 子状态：done — Web 侧 AI 分析触发链路打通：触发 → `mockLLMAdapter` → AIAnalysis + ToolAction 渲染 + §5.2 分流标注 + fallback UI（dev 预览实测通过）
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 5: Web 三栏工作台骨架（AntD v5 + RR7 + TanStack Query + Zustand）`
+- 最后 commit：`Step 6: AI 分析触发（mockLLMAdapter → AIAnalysis + ToolAction 渲染 + 分流标注）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；web `vite build` ✅；dev 预览渲染 ✅ 无 console 错误
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；dev 预览实测：触发→建议→两动作（RN/Web 分流）渲染 ✅ 无 console 错误
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 5。** 通过后再做 §14 Step 6：实现 AI 分析触发。选中会话 → 触发客户消息 → 调 `mockLLMAdapter.analyzeConversation`（已就绪，走 TanStack Query mutation）→ 生成 `AIAnalysis` + `ToolAction`。把结果写进消息流（ai_suggestion 消息）与右栏，并据 `requiresMobileApproval(action.riskLevel)` 标注分流；fallback（`isFallbackAnalysis`）要有 UI。ToolApprovalCard 本体留到 Step 7。注意承重墙优先：别铺浅页面，先把触发→建议→（后续）审批这条链路做实。当前 AI 建议区是占位 Alert（`ConversationDetailPanel.tsx`），Step 6 替换为真实建议渲染。
+> ⏸ **先等人类评审通过 Step 6。** 通过后再做 §14 Step 7：**承重墙 ToolApprovalCard**（PRD §9）。把 Step 6 的 `SuggestedActionPreview` 升级为真正的审批卡：用 `@xstate/react`（`useMachine`/`useActor`）绑定 shared 的 `approvalMachine`（一个 ToolAction 一台实例）；editing 态用 `TOOL_ACTION_PARAMS_SCHEMAS[action.type]` **schema 驱动**渲染参数表单（不硬编码字段，§9.5），编辑写 `editedParams` 草稿、支持 `originalParams` vs 草稿 diff、SAVE 时 Zod 校验通过再写回 `params`；各状态（suggested/editing/executing/success/failed/rejected/rollback）UI 呈现；**每个关键动作写入 Timeline**（§6.1.5 / §9.5）。React19 hook（useActionState/useOptimistic）只用于表现层，状态流转归 XState（ADR-0001 红线）。注意：低风险动作（create_followup_task）走 Web 审批可在卡上操作；medium/high（send_coupon）在 Web 只可看/改参不可批（§5.2），其完整裁决在 RN（Step 9）。失败演示用 Header 的「强制执行失败」开关（Step 8 接线）。
 
 ## Step 清单（对应 PRD §14）
 
@@ -25,7 +25,7 @@
 - [x] Step 3 — XState `approvalMachine`（§9.3 全部转移，含 CANCEL）
 - [x] Step 4 — Mock LLM Adapter（过 `AIAnalysisSchema` + fallback）
 - [x] Step 5 — Web 工作台三栏骨架
-- [ ] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
+- [x] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
 - [ ] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
 - [ ] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
 - [ ] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
@@ -48,4 +48,6 @@
 - Step 4 产物：`packages/mock-ai/src`（`types`/`adapter`/`fallback`/barrel）。`mockLLMAdapter.analyzeConversation` 单一固定场景（§11.3 price_negotiation，非空消息即返回），构建 candidate 后 `AIAnalysisSchema.parse` 作类型闸门；初始化 `originalParams=params`、`editedParams` 留空、`status=suggested`。fallback：空消息或异常 → `createFallbackAnalysis`（sentinel intent `analysis_unavailable`，`isFallbackAnalysis` 检测），仍过 schema。导出 `DEMO_CUSTOMER_MESSAGE` 供 Step 6 复用。
 - Step 5 产物（`apps/web/src`）：`main.tsx`（首行 import AntD React19 patch）→ `app/providers.tsx`（QueryClient + ConfigProvider + AntD `App`）→ `app/router.tsx`（RR7 单路由 `/` → `App` → `WorkbenchLayout`）。状态：`store/workbench-store.ts`（Zustand：selectedConversationId / statusFilter / forceNextExecutionFailure）。数据：`mock/fixtures.ts`（静态占位，typed against shared；含张女士 price 案，复用 mock-ai 的 `DEMO_CUSTOMER_MESSAGE`）+ `api/workbench-queries.ts`（TanStack Query 包装）。布局：`features/workbench/`（WorkbenchLayout/Header/ConversationListPanel/ConversationDetailPanel/CustomerContextPanel）。`lib/labels.ts`+`lib/format.ts` 工具。
 - Step 5 仅骨架：AI 建议区是占位 Alert，审批卡未做；Header 的「强制执行失败」开关已接 store 但 Step 8 才生效。`.claude/launch.json` 配了 web dev（端口 5174）供预览/`/run`。
-- 实现级决策见 `docs/DECISIONS.md`，Step 6 起请沿用。
+- Step 6 产物：`api/workbench-queries.ts` 加 `useAnalysis`（读）+ `useTriggerAnalysis`（mutation 调 `mockLLMAdapter`，写 `mock/analysis-store.ts` 内存库 + `setQueryData`）。`features/workbench/AiSuggestionPanel.tsx`（触发按钮 / §7.4 展示 / fallback Alert / `App.useApp()` toast）+ `SuggestedActionPreview.tsx`（动作只读预览 + `requiresMobileApproval` 分流徽标）。`ConversationDetailPanel` 用 AiSuggestionPanel 替换占位。labels 加 SENTIMENT/TOOL_ACTION_TYPE。
+- 注意（设计使然，已记 DECISIONS）：mock 为单一固定场景，**任意会话触发都返回 §11.3 price_negotiation**；demo 用张女士这条。SuggestedActionPreview 是只读预览，Step 7 升级为带状态机的 ToolApprovalCard。
+- 实现级决策见 `docs/DECISIONS.md`，Step 7 起请沿用。
