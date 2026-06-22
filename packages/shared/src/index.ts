@@ -1,6 +1,6 @@
 // Public surface of @ai-agent-desk/shared — framework-free logic only
-// (PRD §3.4 / §13): Zod schemas, z.infer-derived types, approval-routing policy.
-// The XState approval machine (Step 3) is added here next.
+// (PRD §3.4 / §13): Zod schemas, z.infer-derived types, the XState approval
+// machine, and the approval-routing policy.
 export * from './enums';
 export * from './tool-action-params';
 export * from './tool-action';
@@ -11,3 +11,4 @@ export * from './message';
 export * from './timeline-event';
 export * from './approval-task';
 export * from './approval-routing';
+export * from './approval-machine';

@@ -54,6 +54,11 @@
 - 背景：PRD §10 未规定 shared 内部文件划分；一域一文件便于评审对照章节。zod v4 改了 `z.record` 等签名，会迫使改动 PRD §10 冻结的 schema 写法（如 `z.record(z.unknown())`），故留 v3 以忠实复刻冻结数据模型。
 - 由：CC
 
+### 2026-06-22 · Step 3 · approvalMachine 建模取舍
+- 决策：用 XState v5 `setup().createMachine`。`approved` 瞬时态用 `always` 自动转移到 `executing`（推荐表的 `approved--EXECUTE-->executing` 落地为自动转移，app 不手动派发 EXECUTE）。`rejected`/`rollback` 建模为**无出向转移的普通终态**（不用 `type:'final'`，避免 actor 停止、便于 UI 持续读状态）。机器无 guard、无 action/I-O；副作用（Timeline 写入、mock 执行、参数校验）留 app 层以保 shared 纯净。事件无 payload。
+- 背景：PRD §9.3 要求瞬时 approved 且实现全部转移；§3.4/§12.3 要求 shared 无 React/无 I/O。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。
