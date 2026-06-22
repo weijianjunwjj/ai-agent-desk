@@ -59,6 +59,11 @@
 - 背景：PRD §9.3 要求瞬时 approved 且实现全部转移；§3.4/§12.3 要求 shared 无 React/无 I/O。
 - 由：CC
 
+### 2026-06-22 · Step 4 · Mock LLM Adapter 形态
+- 决策：`mock-ai` 拆 `types`（§11.2 服务接口，非数据模型，可写 interface）/ `adapter` / `fallback` / barrel。本期单一固定场景（§11.3），任意非空消息都返回 price_negotiation；构建无类型 candidate 后用 `AIAnalysisSchema.parse` 作唯一类型闸门（happy path 通过、异常落 fallback）。rawOutput 存「模型原始文本」JSON 串。fallback 用 sentinel `intent='analysis_unavailable'` + `isFallbackAnalysis()` 表达（不改冻结 schema、不加字段）；空消息或 parse 异常即 fallback。id 用模块内计数器 + `Date.now()`（避免依赖 `crypto.randomUUID`，RN/Hermes 不保证）。
+- 背景：PRD §11 要求纯 TS、过 Zod、初始化 original/edited、提供 fallback；§11.3 只规定单一 demo case，故不发明第二场景。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。
