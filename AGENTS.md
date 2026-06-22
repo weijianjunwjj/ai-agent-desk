@@ -115,12 +115,15 @@ ai-agent-desk/
 ├── CLAUDE.md
 ├── AGENTS.md
 ├── README.md   # ← 你在 Step 11 产出
+├── .github/
+│   └── workflows/
+│       └── ci.yml   # ← 最简 CI：install + pnpm -w check（Step 1 建立，见 §12）
 └── pnpm-workspace.yaml
 ```
 
 ## 8. 执行顺序（§14，严格按序）
 
-1. monorepo 基础（含 `.npmrc` `node-linker=hoisted` 或 metro `watchFolders`+`nodeModulesPaths`；shared/mock-ai 用 `exports` 指向 `./src/index.ts`；配 tsconfig path/references）
+1. monorepo 基础（含 `.npmrc` `node-linker=hoisted` 或 metro `watchFolders`+`nodeModulesPaths`；shared/mock-ai 用 `exports` 指向 `./src/index.ts`；配 tsconfig path/references；建立 `pnpm -w check` 脚本与最简 CI，见 §12）
 2. shared 类型与 schema（Zod-first；含参数 schema 注册表 `TOOL_ACTION_PARAMS_SCHEMAS` 与分流策略）
 3. XState `approvalMachine`（实现 §9.3 全部转移）
 4. Mock LLM Adapter（固定 demo input、结构化 output、过 `AIAnalysisSchema`、fallback）
@@ -132,11 +135,13 @@ ai-agent-desk/
 10. Expo Notifications 模拟推送链路
 11. 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
 
-**节奏要求**：Step 2–3 完成后先让 `tsc` 全绿，再进 UI；不要一口气铺到 RN。
+**节奏要求**：每个 Step 完成 = `pnpm -w check` 全绿（见 §12）。Step 2–3 完成后先让 check 全绿，再进 UI；不要一口气铺到 RN。
 
 ## 9. 完成标准（§15）
 
 功能、技术、求职展示三类验收以 PRD §15 为准。关键技术验收：Zod-first、参数按 type 定型（非 `Record<string,unknown>`）、状态机不散落在 `useState`、`packages/shared` 不含 React、Timeline 记录关键事件、README 解释为什么不用 Next.js。
+
+**每个 Step 的“完成”以质量闸门为准**：`pnpm -w check`（tsc + lint + 契约测试）全绿才算完成，再 commit + 更新 PROGRESS（见 §12）。
 
 ## 10. 开工前自检
 
@@ -169,3 +174,26 @@ Claude Code 与 Codex 可交替接力（如一方 token 用尽换另一方）。
 - 优先在 **Step 边界**换手；非到不得已不要在一个 Step 中途换。
 - 任何改动必须已 `commit`，下一个 Agent 才拉得到。
 - frozen spec 仍然全程有效——接力不是重新设计的借口。
+
+## 12. 质量闸门 / Quality Gate（实现约束）
+
+> 这是验收手段，**不改变 PRD 范围**。每个 Step 的“完成”以本闸门为准，用机器把关替代人工逐行复审。
+
+**Step 1 顺手建立统一校验与最简 CI：**
+
+- 根 `package.json` 加脚本：`"check": "pnpm -w exec tsc --noEmit && pnpm -w lint && pnpm -w test"`（按实际包结构调整命令）。
+- `.github/workflows/ci.yml`：在 push / PR 上跑 `pnpm install` + `pnpm -w check`。
+
+**每个 Step 收尾，`pnpm -w check` 必须全绿，才算该 Step 完成**——然后才 commit + 更新 `docs/PROGRESS.md`。check 不绿 = 这步没做完。
+
+**ESLint 边界规则（把架构红线自动化）：**
+
+- 禁止 `packages/shared` 内 import `react` / `react-native` / 任何 UI 库（用 `no-restricted-imports` 或等价规则）。违反即 lint 失败。
+
+**契约级测试（只测承重墙，不追求覆盖率），随对应 Step 一起补：**
+
+- 状态机关键转移（Step 3）：`suggested→approved→executing→success`、`executing→failed→rollback`、`editing→CANCEL→suggested`。
+- Mock 输出（Step 4）：`AIAnalysisSchema` 能解析 §11.3 的 demo 数据；非法 `params` 被拒。
+- 分流（Step 2）：`requiresMobileApproval` —— low→Web、medium/high→RN。
+
+**不要把它扩成大测试套件。** 上面几条够守住地基与刀尖，其余正确性交给 `tsc` 与 §15.1 的 demo 链路。
