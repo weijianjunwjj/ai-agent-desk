@@ -1,4 +1,4 @@
-import type { ToolAction } from '@ai-agent-desk/shared';
+import type { ToolAction, ToolActionStatus } from '@ai-agent-desk/shared';
 import {
   approvalMachine,
   requiresMobileApproval,
@@ -8,7 +8,7 @@ import { useMachine } from '@xstate/react';
 import { Alert, App, Button, Card, Space, Spin, Tag, Tooltip, Typography } from 'antd';
 import { useEffect, useState } from 'react';
 
-import { useTimelineWriter } from '../../api/workbench-queries';
+import { useActionStatusSync, useTimelineWriter } from '../../api/workbench-queries';
 import { formatDateTime } from '../../lib/format';
 import { getSchemaFields } from '../../lib/schema-fields';
 import { createTimelineEvent } from '../../mock/timeline-store';
@@ -26,6 +26,7 @@ export function ToolApprovalCard({ action }: { action: ToolAction }) {
   const status = String(state.value);
   const { message } = App.useApp();
   const appendTimeline = useTimelineWriter();
+  const syncActionStatus = useActionStatusSync();
   const forceFail = useWorkbenchStore((s) => s.forceNextExecutionFailure);
   const setForceFail = useWorkbenchStore((s) => s.setForceNextExecutionFailure);
 
@@ -42,6 +43,13 @@ export function ToolApprovalCard({ action }: { action: ToolAction }) {
   const paramsEdited = JSON.stringify(params) !== JSON.stringify(originalParams);
 
   const timeline = (event: Parameters<typeof createTimelineEvent>[0]) => appendTimeline(createTimelineEvent(event));
+
+  // Project the machine status so the conversation list/context re-derive
+  // status + pendingActionCount (PRD §14 Step 8). 'approved' is transient.
+  useEffect(() => {
+    if (status === 'approved') return;
+    syncActionStatus(action.id, status as ToolActionStatus);
+  }, [status, action.id, syncActionStatus]);
 
   // Mock execution runs when the machine enters `executing`. Outcome is
   // deterministic via the demo "force fail" switch (PRD §12.2), not random.
@@ -75,6 +83,15 @@ export function ToolApprovalCard({ action }: { action: ToolAction }) {
           operatorType: 'system',
           operatorName: '系统',
           afterSnapshot: { params },
+        });
+        timeline({
+          conversationId: action.conversationId,
+          actionId: action.id,
+          eventType: 'conversation_status_updated',
+          title: '会话状态更新',
+          description: `动作「${action.title}」执行成功，会话留痕已更新。`,
+          operatorType: 'system',
+          operatorName: '系统',
         });
         send({ type: 'RESOLVE_SUCCESS' });
       }

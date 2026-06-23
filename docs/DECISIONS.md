@@ -74,6 +74,11 @@
 - 背景：PRD §9/§9.5/§12.3 要求 schema 驱动、状态归状态机、shared 纯净；ADR-0001 红线 React19 hooks 不管业务状态。
 - 由：CC
 
+### 2026-06-22 · Step 8 · 会话状态联动（派生而非落库）
+- 决策：会话 `status` / `pendingActionCount` **不持久化**，在 `useConversations` 的 `deriveConversation` 里据 `analysisStore`（会话的动作）+ `actionStatusStore`（actionId→当前 status）实时派生：pending = 不在 {success,rejected,rollback} 的动作数；pending>0→waiting_approval，全部 resolved 且有 success→followed_up。卡用 `useActionStatusSync`（effect，每次 status 变化、approved 瞬时跳过）写投影并 invalidate ['conversations']。`conversation_status_updated` Timeline 在 trigger（待审批）与执行成功时写。失败/回滚的确定性由 Step 7 已接的 `forceNextExecutionFailure` 提供。
+- 背景：PRD §14 Step 8 要会话状态更新 + §5.1 闭环；派生避免双写真相、与 XState（每卡状态真相）一致。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。

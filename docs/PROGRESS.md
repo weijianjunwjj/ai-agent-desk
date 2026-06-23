@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 7 已完成，等待人类评审**（评审通过前不要开始 Step 8）
-- 子状态：done — 承重墙 ToolApprovalCard：XState 绑定 + schema 驱动表单/diff + 全状态 UI + Timeline 写入 + §5.2 分流约束（dev 预览实测通过）
+- 当前 Step：**Step 8 已完成，等待人类评审**（评审通过前不要开始 Step 9）
+- 子状态：done — Web 闭环打通：会话 status/pendingActionCount 随动作生命周期派生联动 + conversation_status_updated Timeline + 确定性 failed→rollback（forceNextExecutionFailure）整链
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 7: ToolApprovalCard（XState 绑定 + schema 驱动表单/diff + Timeline 写入）`
+- 最后 commit：`Step 8: 打通 Web 闭环（会话状态联动 + 确定性 failed→rollback + Timeline）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；dev 预览实测：suggested/editing(schema 表单+diff)/executing→rollback 全程渲染 ✅、§5.2 分流（send_coupon RN 禁批 / followup Web 可批）✅、Timeline 写入 ✅、无 console 错误
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；web `vite build` ✅。注意：本次 dev 预览 screenshot 工具间歇性超时（无 console 错误，属预览渲染器抓图不稳定），Step 8 的卡片交互在 Step 7 已实测；Step 8 增量（状态派生 + Timeline 事件）经 check + build + 代码核对验证。下次开发可重试预览实测整链。
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 7。** 通过后再做 §14 Step 8：打通 Web 闭环（§5.1 低风险分支 + §8 端到端）。要点：把会话 `status` 随动作生命周期联动更新（如 approved→executing 时 waiting_approval/处理中、success→followed_up 等，写 `conversation_status_updated` Timeline）；确保 failed→rollback 用 Header「强制执行失败」开关做确定性演示（开关已接 store + 卡内执行已读取，验证整链）；会话列表 pendingActionCount 等随状态刷新；保证「AI 建议→改参→确认→executing→success/(failed→rollback)→Timeline」整条链路在 demo 中连贯。注意承重墙已成型，Step 8 是整合与状态联动，别重写卡。RN（Step 9）才做 send_coupon 的移动端裁决。
+> ⏸ **先等人类评审通过 Step 8。** 通过后再做 §14 Step 9：搭 `apps/mobile` RN 审批端（PRD §8，Expo Router 三屏：待审批列表 / 审批详情 / 状态回执）。**复用 `packages/shared`** 的类型/schema/`approvalMachine`/`requiresMobileApproval`；RN 只做审批收件箱，不重做工作台（§13.1.15）。审批详情「修改后同意」用 per-type 参数 Zod schema 校验，但表单用**原生 RN 组件**最小实现（AntD 不在 RN，§8.3）。RN 裁决→状态机映射全复用现有转移（§5.2）：同意 APPROVE / 拒绝 REJECT / 修改后同意 EDIT→SAVE→APPROVE / 稍后处理 ApprovalTask.delayed。ApprovalTask 列表数据本期可用 RN 本地 mock（与 Web 跨进程同步不在 MVP 真实链路；Step 10 用 Expo Notifications 模拟推送链路）。`@xstate/react` 在 mobile 也要装（shared 不含）。
 
 ## Step 清单（对应 PRD §14）
 
@@ -27,7 +27,7 @@
 - [x] Step 5 — Web 工作台三栏骨架
 - [x] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
 - [x] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
-- [ ] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
+- [x] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
 - [ ] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
 - [ ] Step 10 — Expo Notifications 模拟推送链路
 - [ ] Step 11 — 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
@@ -52,4 +52,5 @@
 - 注意（设计使然，已记 DECISIONS）：mock 为单一固定场景，**任意会话触发都返回 §11.3 price_negotiation**；demo 用张女士这条。SuggestedActionPreview 是只读预览，Step 7 升级为带状态机的 ToolApprovalCard。
 - Step 7 产物：`features/workbench/ToolApprovalCard.tsx`（`useMachine(approvalMachine)`，一动作一实例；状态归 XState，React state 仅存 params/draft/errors/failedReason 表现数据）。`SchemaParamsForm.tsx` + `lib/schema-fields.ts`（读 zod v3 `_def` 内省，按 `TOOL_ACTION_PARAMS_SCHEMAS[type]` 渲染，不硬编码字段）。`SuggestedActionPreview.tsx` 改为只读 body（被卡复用）。`mock/timeline-store.ts` + `useTimelineWriter`：卡在 SAVE/APPROVE/executing/success/failed/rollback/reject 写 Timeline；触发时写 ai_analysis_created + tool_action_suggested。执行用 `useEffect`（status==='executing'）+ setTimeout，按 `forceNextExecutionFailure` 确定性决定成败并一次性复位。
 - 关键约束守住：状态机不散落（§12.3）；schema 驱动表单（§9.5）；§5.2 分流——medium/high 在 Web 禁批（确认/拒绝 disabled + 说明），low 可批。React19 hooks 未用于状态流转（ADR-0001 红线）。
-- 实现级决策见 `docs/DECISIONS.md`，Step 8 起请沿用。
+- Step 8 产物：`mock/action-status-store.ts`（actionId→status 投影）；`api/workbench-queries.ts` 的 `deriveConversation` 据 analysisStore + actionStatusStore 派生会话 status/pendingActionCount（pending = 不在 success/rejected/rollback）；`useActionStatusSync` 由卡 effect 调用（每次 status 变化，approved 瞬时跳过）；trigger 写 conversation_status_updated「待审批」、卡执行成功写 conversation_status_updated。会话 status 全派生、不落库；张女士两动作中 send_coupon 走 RN 故 Web 闭环后仍保留 1 pending（waiting_approval），符合预期（其裁决在 Step 9 RN）。
+- 实现级决策见 `docs/DECISIONS.md`，Step 9 起请沿用。

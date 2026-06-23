@@ -1,14 +1,39 @@
 // TanStack Query hooks over the mock fixtures (PRD §12.1). A small delay
 // simulates async fetching so loading states are exercised. Real mutations
 // (AI trigger, approval) arrive in Step 6+.
-import type { TimelineEvent } from '@ai-agent-desk/shared';
+import type { Conversation, TimelineEvent, ToolActionStatus } from '@ai-agent-desk/shared';
 import { DEMO_CUSTOMER_MESSAGE, isFallbackAnalysis, mockLLMAdapter } from '@ai-agent-desk/mock-ai';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback } from 'react';
 
+import { actionStatusStore } from '../mock/action-status-store';
 import { analysisStore } from '../mock/analysis-store';
 import { conversations, customers, messagesByConversation } from '../mock/fixtures';
 import { createTimelineEvent, timelineStore } from '../mock/timeline-store';
+
+// A ToolAction is "resolved" once it leaves the decision/execution phase.
+const RESOLVED_STATUSES: ToolActionStatus[] = ['success', 'rejected', 'rollback'];
+
+// Derives conversation status + pendingActionCount from its actions' live
+// statuses (PRD §14 Step 8 会话状态更新). Conversations without analysis are
+// returned unchanged.
+function deriveConversation(conversation: Conversation): Conversation {
+  const analysis = analysisStore.get(conversation.id);
+  if (!analysis || isFallbackAnalysis(analysis) || analysis.nextActions.length === 0) {
+    return conversation;
+  }
+  const statuses = analysis.nextActions.map(
+    (action) => actionStatusStore.get(action.id) ?? 'suggested',
+  );
+  const pendingActionCount = statuses.filter((s) => !RESOLVED_STATUSES.includes(s)).length;
+  let status = conversation.status;
+  if (pendingActionCount > 0) {
+    status = 'waiting_approval';
+  } else if (statuses.includes('success')) {
+    status = 'followed_up';
+  }
+  return { ...conversation, status, pendingActionCount };
+}
 
 function resolveLater<T>(value: T): Promise<T> {
   return new Promise((resolve) => {
@@ -19,7 +44,7 @@ function resolveLater<T>(value: T): Promise<T> {
 export function useConversations() {
   return useQuery({
     queryKey: ['conversations'],
-    queryFn: () => resolveLater(conversations),
+    queryFn: () => resolveLater(conversations.map(deriveConversation)),
   });
 }
 
@@ -54,6 +79,19 @@ export function useTimelineWriter() {
     (event: TimelineEvent) => {
       timelineStore.append(event);
       void queryClient.invalidateQueries({ queryKey: ['timeline', event.conversationId] });
+    },
+    [queryClient],
+  );
+}
+
+// Projects a ToolAction's live status so the conversation list / context panel
+// re-derive status + pendingActionCount (PRD §14 Step 8).
+export function useActionStatusSync() {
+  const queryClient = useQueryClient();
+  return useCallback(
+    (actionId: string, status: ToolActionStatus) => {
+      actionStatusStore.set(actionId, status);
+      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
     [queryClient],
   );
@@ -120,8 +158,19 @@ export function useTriggerAnalysis(conversationId: string | null) {
             }),
           );
         }
+        timelineStore.append(
+          createTimelineEvent({
+            conversationId: analysis.conversationId,
+            eventType: 'conversation_status_updated',
+            title: '会话进入待审批',
+            description: 'AI 已生成建议动作，等待人工审批。',
+            operatorType: 'system',
+            operatorName: '系统',
+          }),
+        );
       }
       void queryClient.invalidateQueries({ queryKey: ['timeline', conversationId] });
+      void queryClient.invalidateQueries({ queryKey: ['conversations'] });
     },
   });
 }
