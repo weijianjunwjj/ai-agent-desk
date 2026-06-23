@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 9 已完成，等待人类评审**（评审通过前不要开始 Step 10）
-- 子状态：done — RN 审批端三屏（Expo Router）：待审批列表 / 审批详情 / 状态回执，复用 shared 状态机/schema/分流 + mock-ai；web 预览实测全流程（修改后同意→success→回执）通过
+- 当前 Step：**Step 10 已完成，等待人类评审**（评审通过前不要开始 Step 11）
+- 子状态：done — Expo Notifications 模拟推送链路：列表「模拟收到推送」→（真机）本地通知/（web）降级直达 → 审批详情 → 审批 → 回执
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 9: RN 审批端（Expo Router 三屏 + 复用 shared approvalMachine/schema/分流）`
+- 最后 commit：`Step 10: Expo Notifications 模拟推送链路（本地通知 + 点击进详情 + web 降级）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 浏览器预览实测三屏 + 修改后同意整链 ✅（仅 react-native-web/screens 的 pointerEvents 弃用告警，无错误）。真机 iOS 由人类用 Expo Go 扫码验收（含 Step 10 通知）。
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 预览实测：「模拟收到推送」→ 审批详情跳转 ✅ 无 console 错误。**真机本地通知（点通知进详情）需人类 iPhone Expo Go 实测**（web 不支持系统通知，已降级为直达）。
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 9。** 通过后再做 §14 Step 10：Expo Notifications 模拟推送链路（PRD §8.5 / §10）。在 `apps/mobile` 装 `expo-notifications`（expo install），实现「Web 生成 medium/high 动作 → 触发本地通知 → 点击进入审批详情 → 审批后回执」。要点：用**本地通知**（`scheduleNotificationAsync` + `addNotificationResponseReceivedListener` 点击跳 `/approval/[id]`），不接真实远程 APNs（spec 是「模拟推送」）；**Web 端降级**：react-native-web 下通知能力受限，做一个等价 in-app 入口（如列表顶部「模拟收到推送」按钮）保证我能预览验证；真机本地通知由人类 iPhone Expo Go 实测。注意权限请求 `requestPermissionsAsync`。Timeline 的 rn_push_sent / rn_action_approved/rejected 事件本期 RN 侧本地记录即可（与 Web 跨进程同步非 MVP 真实链路）。
+> ⏸ **先等人类评审通过 Step 10。** 通过后做最后一步 §14 Step 11：产出文档与演示材料。`README.md`（项目定位、架构、技术栈与 **tradeoff——重点解释为什么不用 Next.js（§3.2 面试口径）+ 为什么 RN 是审批收件箱而非完整工作台**、本地运行指引含 Web `pnpm --filter @ai-agent-desk/web dev` 与 RN `expo start`/Expo Go、ADR-0001 React19 说明、截图位）；`docs/DEMO_SCRIPT.md`（§15.1 完整脚本：张女士优惠咨询→AI 分析→两动作分流→Web 改参/确认/（强制失败→回滚）→send_coupon 走 RN 通知→修改后同意→回执→Timeline）；`docs/STATE_MACHINE.md` 已存在（Step 3 产出），复核补充即可。注意 README 须覆盖 §15.3 求职展示十问要点。无新代码，纯文档。
 
 ## Step 清单（对应 PRD §14）
 
@@ -29,7 +29,7 @@
 - [x] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
 - [x] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
 - [x] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
-- [ ] Step 10 — Expo Notifications 模拟推送链路
+- [x] Step 10 — Expo Notifications 模拟推送链路
 - [ ] Step 11 — 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
 
 > 节奏：Step 2–3 完成后先让 `tsc` 全绿再进 UI；不要一口气铺到 RN。
@@ -55,4 +55,6 @@
 - Step 8 产物：`mock/action-status-store.ts`（actionId→status 投影）；`api/workbench-queries.ts` 的 `deriveConversation` 据 analysisStore + actionStatusStore 派生会话 status/pendingActionCount（pending = 不在 success/rejected/rollback）；`useActionStatusSync` 由卡 effect 调用（每次 status 变化，approved 瞬时跳过）；trigger 写 conversation_status_updated「待审批」、卡执行成功写 conversation_status_updated。会话 status 全派生、不落库；张女士两动作中 send_coupon 走 RN 故 Web 闭环后仍保留 1 pending（waiting_approval），符合预期（其裁决在 Step 9 RN）。
 - Step 9 产物：`apps/mobile` 转 Expo Router（entry=`index.ts`→`expo-router/entry`；`App.tsx` 弃用占位返回 null，因无法 rm）。`app/_layout.tsx`(Stack) + `app/index.tsx`(待审批列表 FlashList) + `app/approval/[id].tsx`(详情，绑 `approvalMachine`，4 裁决) + `app/receipt/[id].tsx`(回执)。`src/store/approval-store.ts`(Zustand) + `src/mock/seed.ts`(跑 mockLLMAdapter→`requiresMobileApproval` 过滤出 RN 任务，故只剩 send_coupon) + `src/components/ParamsEditor.tsx`(原生 schema 驱动表单) + `src/lib/{labels,format}`。`getSchemaFields` 已**移到 `packages/shared/src/schema-fields.ts`**（web/RN 共用），web `lib/schema-fields.ts` 改为再导出。app.json 加 scheme `aiagentdesk` + web bundler metro + platforms 含 web。`.claude/launch.json` 加 `mobile-web`（端口 8082）。
 - 守住：RN 只做审批收件箱（不重做工作台）；修改后同意=EDIT→SAVE→APPROVE 复用现有转移（§5.2）；表单原生最小实现 + Zod 校验（§8.3）。
-- 实现级决策见 `docs/DECISIONS.md`，Step 10 起请沿用。
+- Step 10 产物：`src/notifications.ts`（`setNotificationHandler` + `ensureNotificationPermission` + `sendApprovalPush`，本地通知、web 返回 false 触发降级）；`app/_layout.tsx` 加 `addNotificationResponseReceivedListener` → 点通知跳 `/approval/[id]`（native）；`app/index.tsx` 每张卡加「模拟收到推送」按钮（native 发本地通知；web 直达详情）+ 已推送标记；store 加 `pushedTaskIds`/`markPushed`。expo-notifications `~0.32.17`（手动按 bundledNativeModules 版本加，因 expo install 在本机 pnpm 偶发 spawn 失败）。
+- 运维注意：preview `expo start --web` 停止后可能残留 metro/jest-worker node 进程，会锁 `node_modules/metro-core` 致下次 `pnpm install` ENOENT；解法是杀掉 ai-agent-desk 的 expo/jest-worker 进程后重装（本步已遇到并处理）。
+- 实现级决策见 `docs/DECISIONS.md`，Step 11 起请沿用。

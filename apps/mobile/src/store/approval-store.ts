@@ -18,9 +18,11 @@ interface ApprovalState {
   order: string[];
   details: Record<string, TaskDetail>;
   results: Record<string, DecisionResult>;
+  pushedTaskIds: string[];
   load: () => Promise<void>;
   recordResult: (taskId: string, result: DecisionResult) => void;
   markDelayed: (taskId: string) => void;
+  markPushed: (taskId: string) => void;
 }
 
 export const useApprovalStore = create<ApprovalState>((set, get) => ({
@@ -28,6 +30,7 @@ export const useApprovalStore = create<ApprovalState>((set, get) => ({
   order: [],
   details: {},
   results: {},
+  pushedTaskIds: [],
   load: async () => {
     if (get().loaded) return;
     const tasks = await seedInbox();
@@ -53,4 +56,10 @@ export const useApprovalStore = create<ApprovalState>((set, get) => ({
         },
       },
     })),
+  markPushed: (taskId) =>
+    set((state) =>
+      state.pushedTaskIds.includes(taskId)
+        ? state
+        : { pushedTaskIds: [...state.pushedTaskIds, taskId] },
+    ),
 }));

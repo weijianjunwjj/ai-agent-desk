@@ -84,6 +84,11 @@
 - 背景：PRD §3.3/§8 钉 Expo Router 三屏 + §8.3 原生表单 + §5.2 复用转移；用户只有 iOS 无安卓，故加 web 预览路径。
 - 由：CC
 
+### 2026-06-23 · Step 10 · Expo 通知（本地 + web 降级）
+- 决策：用**本地通知**模拟「Web→RN 推送」（spec §8.5 为模拟，无真实 APNs/跨进程）。`sendApprovalPush` 在 native 请求权限并 `scheduleNotificationAsync(trigger:null)`，返回 true；web 返回 false，调用方（列表「模拟收到推送」按钮）降级为 `router.push` 直达详情。点击通知的路由在 `app/_layout.tsx` 用 `addNotificationResponseReceivedListener`（仅 native）。`NotificationBehavior` 用新字段 `shouldShowBanner/shouldShowList`（SDK 54）。`rn_push_sent` 等跨端 Timeline 不做真实跨进程同步，回执里以 syncStatus 文案表示。expo-notifications 手动加 `~0.32.17`（expo install 本机 pnpm spawn 偶发失败）。
+- 运维：`expo start --web` 停服后偶残留 metro/jest-worker 进程锁 `metro-core`，致 `pnpm install` ENOENT；需杀 ai-agent-desk 的 expo/jest-worker 进程再装。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。
