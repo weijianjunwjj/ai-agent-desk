@@ -6,17 +6,17 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 8 已完成，等待人类评审**（评审通过前不要开始 Step 9）
-- 子状态：done — Web 闭环打通：会话 status/pendingActionCount 随动作生命周期派生联动 + conversation_status_updated Timeline + 确定性 failed→rollback（forceNextExecutionFailure）整链
+- 当前 Step：**Step 9 已完成，等待人类评审**（评审通过前不要开始 Step 10）
+- 子状态：done — RN 审批端三屏（Expo Router）：待审批列表 / 审批详情 / 状态回执，复用 shared 状态机/schema/分流 + mock-ai；web 预览实测全流程（修改后同意→success→回执）通过
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 8: 打通 Web 闭环（会话状态联动 + 确定性 failed→rollback + Timeline）`
+- 最后 commit：`Step 9: RN 审批端（Expo Router 三屏 + 复用 shared approvalMachine/schema/分流）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；web `vite build` ✅。注意：本次 dev 预览 screenshot 工具间歇性超时（无 console 错误，属预览渲染器抓图不稳定），Step 8 的卡片交互在 Step 7 已实测；Step 8 增量（状态派生 + Timeline 事件）经 check + build + 代码核对验证。下次开发可重试预览实测整链。
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 浏览器预览实测三屏 + 修改后同意整链 ✅（仅 react-native-web/screens 的 pointerEvents 弃用告警，无错误）。真机 iOS 由人类用 Expo Go 扫码验收（含 Step 10 通知）。
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 8。** 通过后再做 §14 Step 9：搭 `apps/mobile` RN 审批端（PRD §8，Expo Router 三屏：待审批列表 / 审批详情 / 状态回执）。**复用 `packages/shared`** 的类型/schema/`approvalMachine`/`requiresMobileApproval`；RN 只做审批收件箱，不重做工作台（§13.1.15）。审批详情「修改后同意」用 per-type 参数 Zod schema 校验，但表单用**原生 RN 组件**最小实现（AntD 不在 RN，§8.3）。RN 裁决→状态机映射全复用现有转移（§5.2）：同意 APPROVE / 拒绝 REJECT / 修改后同意 EDIT→SAVE→APPROVE / 稍后处理 ApprovalTask.delayed。ApprovalTask 列表数据本期可用 RN 本地 mock（与 Web 跨进程同步不在 MVP 真实链路；Step 10 用 Expo Notifications 模拟推送链路）。`@xstate/react` 在 mobile 也要装（shared 不含）。
+> ⏸ **先等人类评审通过 Step 9。** 通过后再做 §14 Step 10：Expo Notifications 模拟推送链路（PRD §8.5 / §10）。在 `apps/mobile` 装 `expo-notifications`（expo install），实现「Web 生成 medium/high 动作 → 触发本地通知 → 点击进入审批详情 → 审批后回执」。要点：用**本地通知**（`scheduleNotificationAsync` + `addNotificationResponseReceivedListener` 点击跳 `/approval/[id]`），不接真实远程 APNs（spec 是「模拟推送」）；**Web 端降级**：react-native-web 下通知能力受限，做一个等价 in-app 入口（如列表顶部「模拟收到推送」按钮）保证我能预览验证；真机本地通知由人类 iPhone Expo Go 实测。注意权限请求 `requestPermissionsAsync`。Timeline 的 rn_push_sent / rn_action_approved/rejected 事件本期 RN 侧本地记录即可（与 Web 跨进程同步非 MVP 真实链路）。
 
 ## Step 清单（对应 PRD §14）
 
@@ -28,7 +28,7 @@
 - [x] Step 6 — AI 分析触发（生成 AIAnalysis + ToolAction）
 - [x] Step 7 — ToolApprovalCard（schema 驱动参数表单 + diff + Timeline 写入）
 - [x] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
-- [ ] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
+- [x] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
 - [ ] Step 10 — Expo Notifications 模拟推送链路
 - [ ] Step 11 — 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
 
@@ -53,4 +53,6 @@
 - Step 7 产物：`features/workbench/ToolApprovalCard.tsx`（`useMachine(approvalMachine)`，一动作一实例；状态归 XState，React state 仅存 params/draft/errors/failedReason 表现数据）。`SchemaParamsForm.tsx` + `lib/schema-fields.ts`（读 zod v3 `_def` 内省，按 `TOOL_ACTION_PARAMS_SCHEMAS[type]` 渲染，不硬编码字段）。`SuggestedActionPreview.tsx` 改为只读 body（被卡复用）。`mock/timeline-store.ts` + `useTimelineWriter`：卡在 SAVE/APPROVE/executing/success/failed/rollback/reject 写 Timeline；触发时写 ai_analysis_created + tool_action_suggested。执行用 `useEffect`（status==='executing'）+ setTimeout，按 `forceNextExecutionFailure` 确定性决定成败并一次性复位。
 - 关键约束守住：状态机不散落（§12.3）；schema 驱动表单（§9.5）；§5.2 分流——medium/high 在 Web 禁批（确认/拒绝 disabled + 说明），low 可批。React19 hooks 未用于状态流转（ADR-0001 红线）。
 - Step 8 产物：`mock/action-status-store.ts`（actionId→status 投影）；`api/workbench-queries.ts` 的 `deriveConversation` 据 analysisStore + actionStatusStore 派生会话 status/pendingActionCount（pending = 不在 success/rejected/rollback）；`useActionStatusSync` 由卡 effect 调用（每次 status 变化，approved 瞬时跳过）；trigger 写 conversation_status_updated「待审批」、卡执行成功写 conversation_status_updated。会话 status 全派生、不落库；张女士两动作中 send_coupon 走 RN 故 Web 闭环后仍保留 1 pending（waiting_approval），符合预期（其裁决在 Step 9 RN）。
-- 实现级决策见 `docs/DECISIONS.md`，Step 9 起请沿用。
+- Step 9 产物：`apps/mobile` 转 Expo Router（entry=`index.ts`→`expo-router/entry`；`App.tsx` 弃用占位返回 null，因无法 rm）。`app/_layout.tsx`(Stack) + `app/index.tsx`(待审批列表 FlashList) + `app/approval/[id].tsx`(详情，绑 `approvalMachine`，4 裁决) + `app/receipt/[id].tsx`(回执)。`src/store/approval-store.ts`(Zustand) + `src/mock/seed.ts`(跑 mockLLMAdapter→`requiresMobileApproval` 过滤出 RN 任务，故只剩 send_coupon) + `src/components/ParamsEditor.tsx`(原生 schema 驱动表单) + `src/lib/{labels,format}`。`getSchemaFields` 已**移到 `packages/shared/src/schema-fields.ts`**（web/RN 共用），web `lib/schema-fields.ts` 改为再导出。app.json 加 scheme `aiagentdesk` + web bundler metro + platforms 含 web。`.claude/launch.json` 加 `mobile-web`（端口 8082）。
+- 守住：RN 只做审批收件箱（不重做工作台）；修改后同意=EDIT→SAVE→APPROVE 复用现有转移（§5.2）；表单原生最小实现 + Zod 校验（§8.3）。
+- 实现级决策见 `docs/DECISIONS.md`，Step 10 起请沿用。

@@ -6,6 +6,12 @@
       "runtimeExecutable": "pnpm",
       "runtimeArgs": ["--filter", "@ai-agent-desk/web", "dev", "--", "--port", "5174", "--strictPort"],
       "port": 5174
+    },
+    {
+      "name": "mobile-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@ai-agent-desk/mobile", "exec", "expo", "start", "--web", "--port", "8082"],
+      "port": 8082
     }
   ]
 }

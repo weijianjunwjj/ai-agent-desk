@@ -1,21 +1,6 @@
-import { StatusBar } from 'expo-status-bar';
-import { StyleSheet, Text, View } from 'react-native';
-
-// Scaffold placeholder for Step 1. The mobile approval inbox (pending list /
-// approval detail / status receipt) is built in Step 9 onward (PRD §8).
+// Deprecated. The app uses Expo Router now; screens live in app/ and the entry
+// is index.ts (expo-router/entry). This Step-1 scaffold file is no longer the
+// root — kept only because file deletion is unavailable in this environment.
 export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>AI Agent Desk — Mobile approval inbox (scaffold)</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+  return null;
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});

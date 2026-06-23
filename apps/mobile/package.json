@@ -10,11 +10,24 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@ai-agent-desk/mock-ai": "workspace:*",
     "@ai-agent-desk/shared": "workspace:*",
+    "@expo/metro-runtime": "~6.1.2",
+    "@shopify/flash-list": "2.0.2",
+    "@xstate/react": "^6.1.0",
     "expo": "~54.0.0",
+    "expo-constants": "~18.0.13",
+    "expo-linking": "~8.0.12",
+    "expo-router": "~6.0.24",
     "expo-status-bar": "~3.0.9",
     "react": "19.1.0",
-    "react-native": "0.81.5"
+    "react-dom": "19.1.0",
+    "react-native": "0.81.5",
+    "react-native-safe-area-context": "~5.6.0",
+    "react-native-screens": "~4.16.0",
+    "react-native-web": "^0.21.0",
+    "xstate": "^5.32.1",
+    "zustand": "^5.0.14"
   },
   "devDependencies": {
     "@types/react": "~19.1.17",

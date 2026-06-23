@@ -79,6 +79,11 @@
 - 背景：PRD §14 Step 8 要会话状态更新 + §5.1 闭环；派生避免双写真相、与 XState（每卡状态真相）一致。
 - 由：CC
 
+### 2026-06-23 · Step 9 · RN 审批端实现取舍
+- 决策：`apps/mobile` 用 Expo Router（文件路由 `app/`，entry=`index.ts` 引 `expo-router/entry`；旧 `App.tsx` 改为返回 null 的弃用占位，因 sandbox 不能删文件）。三屏：列表(FlashList v2，无需 estimatedItemSize)/详情/回执。详情绑 shared `approvalMachine`，四裁决映射 §5.2（修改后同意=EDIT→SAVE→APPROVE，执行成功→回执）；执行用 `useEffect(status==='executing')`+setTimeout（RN demo 走 success 分支）。inbox 数据由 `seed.ts` 跑 `mockLLMAdapter` + `requiresMobileApproval` 过滤（只出 send_coupon），体现 shared/mock-ai 复用。`getSchemaFields` 从 web 移入 `packages/shared/src/schema-fields.ts`（纯逻辑、无 UI，web 与 RN 共用；web 旧路径改为再导出）。原生表单 `ParamsEditor` 用 TextInput/Pressable chips，提交时用同一 per-type Zod schema 校验。加 web 平台支持（react-native-web + app.json platforms 含 web + bundler metro）便于浏览器预览验证；真机 iOS 由人类 Expo Go 验收。导航用 `router.push({pathname:'/approval/[id]',params})` 对象式（typed-routes 安全）。
+- 背景：PRD §3.3/§8 钉 Expo Router 三屏 + §8.3 原生表单 + §5.2 复用转移；用户只有 iOS 无安卓，故加 web 预览路径。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。
