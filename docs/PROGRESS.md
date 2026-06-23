@@ -6,17 +6,19 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 10 已完成，等待人类评审**（评审通过前不要开始 Step 11）
-- 子状态：done — Expo Notifications 模拟推送链路：列表「模拟收到推送」→（真机）本地通知/（web）降级直达 → 审批详情 → 审批 → 回执
+- 当前 Step：**Step 11 已完成 —— 全部 11 步完成，等待人类评审/验收**
+- 子状态：done — README.md + docs/DEMO_SCRIPT.md 产出；STATE_MACHINE.md 复核（Step 3 已产出）。§14 全流程收尾。
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 10: Expo Notifications 模拟推送链路（本地通知 + 点击进详情 + web 降级）`
+- 最后 commit：`Step 11: README + DEMO_SCRIPT（文档与演示材料）`
 - 当前分支：main
 - 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 预览实测：「模拟收到推送」→ 审批详情跳转 ✅ 无 console 错误。**真机本地通知（点通知进详情）需人类 iPhone Expo Go 实测**（web 不支持系统通知，已降级为直达）。
+- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 预览实测：「模拟收到推送」→ 审批详情跳转 ✅ 无 console 错误。**真机已验收（人类 2026-06-23）**：iPhone Expo Go 本地通知 → 点通知进审批详情 ✅；Web 降级直达 ✅；链路 推送入口→详情→审批/回执 ✅。
 
 ## 下一步（接手者先做这个）
 
-> ⏸ **先等人类评审通过 Step 10。** 通过后做最后一步 §14 Step 11：产出文档与演示材料。`README.md`（项目定位、架构、技术栈与 **tradeoff——重点解释为什么不用 Next.js（§3.2 面试口径）+ 为什么 RN 是审批收件箱而非完整工作台**、本地运行指引含 Web `pnpm --filter @ai-agent-desk/web dev` 与 RN `expo start`/Expo Go、ADR-0001 React19 说明、截图位）；`docs/DEMO_SCRIPT.md`（§15.1 完整脚本：张女士优惠咨询→AI 分析→两动作分流→Web 改参/确认/（强制失败→回滚）→send_coupon 走 RN 通知→修改后同意→回执→Timeline）；`docs/STATE_MACHINE.md` 已存在（Step 3 产出），复核补充即可。注意 README 须覆盖 §15.3 求职展示十问要点。无新代码，纯文档。
+> ✅ **§14 全部 11 步已完成。** 项目进入收尾/验收态，没有"下一个 Step"。后续若继续，属 frozen spec 之外的增强（需人类立项），例如：补 README 截图、真实 LLM（Hono + Vercel AI SDK）、真实 RN 远程推送、真实持久化与跨端同步。任何此类改动都**超出当前 frozen spec 范围**，须先向人类报告并立项，不得擅自扩范围。
+>
+> 可选收尾小事（非必须）：在 `docs/screenshots/` 放 Web/RN 截图并在 README 引用（README 已留位说明）。
 
 ## Step 清单（对应 PRD §14）
 
@@ -30,7 +32,7 @@
 - [x] Step 8 — 打通 Web 闭环（含 failed→rollback 确定性演示）
 - [x] Step 9 — RN 审批端（Expo Router 三屏 + 复用 shared）
 - [x] Step 10 — Expo Notifications 模拟推送链路
-- [ ] Step 11 — 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
+- [x] Step 11 — 产出 README.md / docs/STATE_MACHINE.md / docs/DEMO_SCRIPT.md
 
 > 节奏：Step 2–3 完成后先让 `tsc` 全绿再进 UI；不要一口气铺到 RN。
 
