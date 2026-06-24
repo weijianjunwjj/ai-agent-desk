@@ -100,6 +100,14 @@ pnpm install          # 安装依赖（monorepo，node-linker=hoisted）
 pnpm -w check         # 质量闸门：tsc + eslint + vitest（应全绿，21 个契约测试）
 ```
 
+**一键启动 Web + RN（并行）：**
+
+```bash
+pnpm dev              # 同时起 Web(vite) 与 RN(expo start)，日志按包名前缀交错输出
+pnpm dev:web          # 只起 Web
+pnpm dev:mobile       # 只起 RN（需要操作 Expo 交互菜单时单独起更顺手）
+```
+
 **Web 工作台：**
 
 ```bash
