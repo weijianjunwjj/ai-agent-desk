@@ -43,7 +43,7 @@ Web 选择客户会话 → 客户消息触发 AI 分析（Mock LLM Adapter，结
 
 ## 截图
 
-> 截图占位：按 [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) 跑一遍 demo，把图片放入 [`docs/screenshots/`](docs/screenshots/)（文件名见下，放好即自动显示）。
+> Web 三张由 `pnpm screenshots:web`（Playwright 自动驱动 demo）生成；RN 三张用真机/Expo 截图补入 [`docs/screenshots/`](docs/screenshots/)（文件名见目录说明）。
 
 | Web 工作台 | Web 参数编辑 + diff | Web 失败 → 回滚 |
 |---|---|---|
