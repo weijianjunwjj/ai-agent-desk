@@ -7,9 +7,9 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "pnpm -r --parallel run dev",
+    "dev": "node scripts/dev-all.mjs",
     "dev:web": "pnpm --filter @ai-agent-desk/web dev",
-    "dev:mobile": "pnpm --filter @ai-agent-desk/mobile dev",
+    "dev:mobile": "pnpm --filter @ai-agent-desk/mobile start",
     "screenshots:web": "node scripts/capture-web-screenshots.mjs",
     "typecheck": "pnpm -r --workspace-concurrency=1 typecheck",
     "lint": "eslint .",
