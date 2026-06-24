@@ -100,13 +100,15 @@ pnpm install          # 安装依赖（monorepo，node-linker=hoisted）
 pnpm -w check         # 质量闸门：tsc + eslint + vitest（应全绿，21 个契约测试）
 ```
 
-**一键启动 Web + RN（并行）：**
+**一键启动 Web + RN：**
 
 ```bash
-pnpm dev              # 同时起 Web(vite) 与 RN(expo start)，日志按包名前缀交错输出
-pnpm dev:web          # 只起 Web
-pnpm dev:mobile       # 只起 RN（需要操作 Expo 交互菜单时单独起更顺手）
+pnpm dev              # Web(vite) 跑后台(:5173) + Expo 跑前台（保留 TTY → 扫码/热重载/热键）
+pnpm dev:web          # 只起 Web（想看 Web 日志时）
+pnpm dev:mobile       # 只起 Expo（= expo start，交互式）
 ```
+
+> 为什么 Web 在后台、Expo 在前台：Expo 的交互终端需要真正的 TTY，若与 Web 一起塞进 `pnpm --parallel` 会因拿不到 TTY 而崩。`pnpm dev`（`scripts/dev-all.mjs`）把 Web 放后台、Expo 占前台，二者都能正常工作。
 
 **Web 工作台：**
 
