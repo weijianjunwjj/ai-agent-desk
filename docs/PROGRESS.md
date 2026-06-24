@@ -6,8 +6,8 @@
 
 ## 当前状态
 
-- 当前 Step：**Step 11 已完成 —— 全部 11 步完成，等待人类评审/验收**
-- 子状态：done — README.md + docs/DEMO_SCRIPT.md 产出；STATE_MACHINE.md 复核（Step 3 已产出）。§14 全流程收尾。
+- 当前 Step：**已封版 v1.0.0（2026-06-24）** —— §14 全部 11 步完成并验收
+- 子状态：sealed — 11 步全绿；README/DEMO_SCRIPT/STATE_MACHINE/ADR 齐备；Web 三张（Playwright 自动）+ RN 三张（iPhone 真机）截图就位；`pnpm dev` 一键启动；真机通知链路人类已验收。tag `v1.0.0`。
 - 最后工作的 Agent：Claude Code（Opus）
 - 最后 commit：`Step 11: README + DEMO_SCRIPT（文档与演示材料）`
 - 当前分支：main
