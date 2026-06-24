@@ -49,9 +49,11 @@ Web 选择客户会话 → 客户消息触发 AI 分析（Mock LLM Adapter，结
 |---|---|---|
 | ![Web 三栏工作台](docs/screenshots/web-workbench.png) | ![Web schema 驱动参数编辑与 diff](docs/screenshots/web-approval-editing.png) | ![Web failed→rollback 与 Timeline](docs/screenshots/web-rollback.png) |
 
-| RN 待审批列表 | RN 审批详情（修改后同意） | RN 状态回执 |
+| RN 收件箱 + 本地推送通知 | RN 审批详情 · 修改后同意（原生 schema 表单） | RN 状态回执 |
 |---|---|---|
-| ![RN 待审批收件箱](docs/screenshots/rn-inbox.png) | ![RN 审批详情与原生表单](docs/screenshots/rn-detail.png) | ![RN 状态回执](docs/screenshots/rn-receipt.png) |
+| ![RN 待审批收件箱与推送通知](docs/screenshots/rn-inbox.png) | ![RN 审批详情与原生 schema 驱动表单](docs/screenshots/rn-detail.png) | ![RN 状态回执](docs/screenshots/rn-receipt.png) |
+
+> RN 截图为 iPhone Expo Go 真机；inbox 图顶部为真实本地推送横幅。
 
 ---
 

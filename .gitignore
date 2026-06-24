@@ -146,3 +146,6 @@ vite.config.ts.timestamp-*
 .expo/
 apps/*/dist/
 expo-env.d.ts
+
+# Raw/unprocessed screenshot drops (only curated rn-*.png / web-*.png are tracked)
+docs/screenshots/微信图片_*.png
