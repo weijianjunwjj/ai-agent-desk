@@ -1,5 +1,13 @@
 # AI Agent Desk
 
+[![CI](https://github.com/weijianjunwjj/ai-agent-desk/actions/workflows/ci.yml/badge.svg)](https://github.com/weijianjunwjj/ai-agent-desk/actions/workflows/ci.yml)
+![React](https://img.shields.io/badge/React-19.1-149eca?logo=react&logoColor=white)
+![Expo SDK](https://img.shields.io/badge/Expo%20SDK-54-000020?logo=expo&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?logo=typescript&logoColor=white)
+![XState](https://img.shields.io/badge/XState-v5-2c3e50)
+![Zod](https://img.shields.io/badge/Zod-v3-3e67b1)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 > 面向企业客服 / 销售 / 运营场景的**多端 AI 动作治理工作台**。
 >
 > **AI 负责提速，人类负责裁决，系统负责留痕。**
@@ -30,6 +38,20 @@ Web 选择客户会话 → 客户消息触发 AI 分析（Mock LLM Adapter，结
 ```
 
 默认 demo（张女士 · 优惠咨询）天然覆盖两条分流分支。完整脚本见 [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md)。
+
+---
+
+## 截图
+
+> 截图占位：按 [`docs/DEMO_SCRIPT.md`](docs/DEMO_SCRIPT.md) 跑一遍 demo，把图片放入 [`docs/screenshots/`](docs/screenshots/)（文件名见下，放好即自动显示）。
+
+| Web 工作台 | Web 参数编辑 + diff | Web 失败 → 回滚 |
+|---|---|---|
+| ![Web 三栏工作台](docs/screenshots/web-workbench.png) | ![Web schema 驱动参数编辑与 diff](docs/screenshots/web-approval-editing.png) | ![Web failed→rollback 与 Timeline](docs/screenshots/web-rollback.png) |
+
+| RN 待审批列表 | RN 审批详情（修改后同意） | RN 状态回执 |
+|---|---|---|
+| ![RN 待审批收件箱](docs/screenshots/rn-inbox.png) | ![RN 审批详情与原生表单](docs/screenshots/rn-detail.png) | ![RN 状态回执](docs/screenshots/rn-receipt.png) |
 
 ---
 
