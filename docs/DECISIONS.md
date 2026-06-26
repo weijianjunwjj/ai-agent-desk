@@ -89,6 +89,21 @@
 - 运维：`expo start --web` 停服后偶残留 metro/jest-worker 进程锁 `metro-core`，致 `pnpm install` ENOENT；需杀 ai-agent-desk 的 expo/jest-worker 进程再装。
 - 由：CC
 
+### 2026-06-26 · v0.2 M1 · 服务端运行时如何消费 shared 的 TS 源码
+- 决策：`apps/server`（NestJS）沿用全仓「无构建、源码消费」模型，用 `ts-node`（`module:commonjs` + `experimentalDecorators` + `emitDecoratorMetadata`，保 NestJS DI 元数据）+ `tsconfig-paths/register` 跑。`apps/server/tsconfig.json` 自带 `baseUrl`+`paths`（指向 `../../packages/{shared,mock-ai}/src/index.ts`），并用 ts-node `moduleTypes` 把这两个包的 `.ts` 强制按 `cjs` 加载——否则 ts-node 的 CJS 加载器会因 shared 的 `package.json "type":"module"` 抛 `ERR_REQUIRE_ESM`。dev/start=`ts-node src/main.ts`，typecheck=`prisma generate && tsc --noEmit`，test=vitest（provider 直接 `new` 实例化，不起 Nest 容器，规避 vitest/esbuild 无装饰器元数据）。回退方案＝SWC（`@swc-node/register`），仅改 server 脚本与少量 devDep，不动其余包。
+- 背景：服务端是 shared 第三消费者；NestJS 需装饰器元数据（tsx/esbuild 不产出），shared 是 ESM-typed 的纯 TS 源。详见 `docs/adr/0002-*.md` §5。
+- 由：CC
+
+### 2026-06-26 · v0.2 M1 · LLMAdapter 接口迁入 shared + Node 内置红线
+- 决策：把 `LLMAdapter` / `AnalyzeConversationInput` 从 `mock-ai/types.ts` 迁入 `packages/shared/src/llm-adapter.ts`（只引 shared 自身数据类型）；`mock-ai` 的 `MockLLMAdapter` 退化为 `= LLMAdapter` 别名 + 再导出 `AnalyzeConversationInput`，既有 import（adapter.ts / adapter.test.ts / web / mobile）零破坏。ESLint 对 `packages/shared/**` 的 `no-restricted-imports` 抽到常量 `SHARED_RESTRICTED_IMPORT_PATTERNS`，并入全部 Node 内置 + `node:*`/`node:*/*`；新增 `packages/shared/src/eslint-boundary.test.ts` 用 ESLint API 跑反例（shared 路径下 `import 'node:fs'`/`'path'` 必被 `no-restricted-imports` 拦、干净的 `zod` 不拦），给 shared 加 `eslint` devDep。
+- 背景：任务书 §0 要求 shared 三端（Vite/Metro/Node）同构、追加禁 Node 内置并把红线行为化；LLMAdapter 收敛进 shared 让 server 与 mock-ai 共用一份接口定义。
+- 由：CC
+
+### 2026-06-26 · v0.2 M1 · Prisma 字段对齐策略（JSON 文本列 + Zod 边界校验 + 对齐测试）
+- 决策：`apps/server/prisma/schema.prisma`（SQLite）两张表 `ToolAction`/`TimelineEvent` 列与 shared 类型 1:1；判别联合参数（`params`/`originalParams`/`editedParams`）与审计快照（`before/afterSnapshot`）一律存 **JSON 文本（String）列**（不用 Prisma `Json`，避免 SQLite 版本差异），读写边界过 shared 的 `ToolActionSchema`/`TimelineEventSchema` 校验。模型**不建 Prisma relation 字段**（actionId 留普通 `String?`），以便 `src/prisma/prisma.alignment.test.ts` 正则解析列名后与 shared schema 的 `.shape`/`options[0].shape` 键集**严格相等**比对，防手抄漂移。CI 为 server typecheck 的 `prisma generate` 注入 throwaway `DATABASE_URL`（`.env` gitignored）。M1 仅建表 + PrismaService（onModuleInit/Destroy connect），不写业务读写（留 M3/M4）。
+- 背景：任务书 M1「用 schema 内省辅助对齐、避免手抄漂移」+ §0「服务端不另起平行规则」。
+- 由：CC
+
 ### 2026-06-22 · Step 1 · Expo monorepo 解析
 - 决策：`.npmrc` 写 `node-linker=hoisted` + `strict-peer-dependencies=false`；同时在 `apps/mobile/metro.config.js` 配 `watchFolders=[workspaceRoot]` 与 `nodeModulesPaths=[本地, 根]`（双保险，二者 PRD 是“或”关系）。mobile 入口用 `index.ts` + `registerRootComponent`；tsconfig `extends expo/tsconfig.base` 并本地重声明 `paths` 指向 shared 源码。
 - 背景：PRD §14 Step 1 要求保证 Expo/Metro 能解析 `packages/shared`。

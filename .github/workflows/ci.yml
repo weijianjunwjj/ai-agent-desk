@@ -26,3 +26,8 @@ jobs:
 
       - name: Quality gate (tsc + lint + test)
         run: pnpm -w check
+        # apps/server typecheck runs `prisma generate`, which needs the datasource
+        # env resolvable. .env is gitignored, so provide a throwaway value here.
+        # CI does not connect to a DB or run migrations (no real LLM key either).
+        env:
+          DATABASE_URL: "file:./dev.db"

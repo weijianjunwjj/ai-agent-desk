@@ -147,5 +147,10 @@ vite.config.ts.timestamp-*
 apps/*/dist/
 expo-env.d.ts
 
+# Prisma / SQLite (v0.2 server) — local dev database is not committed
+# (** covers both prisma/dev.db and any nested path)
+apps/server/prisma/**/*.db
+apps/server/prisma/**/*.db-journal
+
 # Raw/unprocessed screenshot drops (only curated rn-*.png / web-*.png are tracked)
 docs/screenshots/微信图片_*.png

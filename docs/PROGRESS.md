@@ -6,19 +6,30 @@
 
 ## 当前状态
 
-- 当前 Step：**已封版 v1.0.0（2026-06-24）** —— §14 全部 11 步完成并验收
-- 子状态：sealed — 11 步全绿；README/DEMO_SCRIPT/STATE_MACHINE/ADR 齐备；Web 三张（Playwright 自动）+ RN 三张（iPhone 真机）截图就位；`pnpm dev` 一键启动；真机通知链路人类已验收。tag `v1.0.0`。
+- 当前阶段：**v0.2 后端纵切 · M1 完成（2026-06-26）** —— 人类已立项的 frozen-v0.1 之外增强（见 `docs/adr/0002-*.md`）。v0.1 仍 sealed 于 tag `v1.0.0`。
+- 子状态：M1 done — 新增 `apps/server`（NestJS + Prisma + SQLite）骨架；`LLMAdapter` 接口迁入 shared；shared 加严「禁 Node 内置」红线 + 反例测试；Prisma 两张表（ToolAction / TimelineEvent）字段对齐 shared 并有对齐契约测试。monorepo 5 包（workspace 6 项目）。
 - 最后工作的 Agent：Claude Code（Opus）
-- 最后 commit：`Step 11: README + DEMO_SCRIPT（文档与演示材料）`
-- 当前分支：main
-- 是否有未提交改动：否
-- 质量闸门（`pnpm -w check`）：✅ 全绿（typecheck × 4 包 + eslint + vitest 21 passed）；RN 经 `expo start --web` 预览实测：「模拟收到推送」→ 审批详情跳转 ✅ 无 console 错误。**真机已验收（人类 2026-06-23）**：iPhone Expo Go 本地通知 → 点通知进审批详情 ✅；Web 降级直达 ✅；链路 推送入口→详情→审批/回执 ✅。
+- 最后 commit：（本次 M1 提交）`M1: server skeleton + shared 接缝整理`
+- 当前分支：**feat/v0.2-m1-server-skeleton**（未 push，等人类 review 后再决定推送/开 PR）
+- 是否有未提交改动：否（M1 已提交）
+- 质量闸门（`pnpm -w check`）：✅ 全绿 — typecheck × 6 workspace 项目（含 server `prisma generate && tsc`）+ eslint + vitest **26 passed**（shared 18 含 3 条边界反例 / mock-ai 6 / server 2 对齐）。本地 smoke：`pnpm --filter @ai-agent-desk/server dev` 起 Nest、`GET /health`→`{"status":"ok"}`、启动日志确认运行时消费 shared。
+
+## v0.2 里程碑（任务书 M1→M4 串行，各自独立 PR）
+
+- [x] **M1** — 服务端骨架 + shared 接缝整理（本次完成）
+- [ ] **M2** — LLM Gateway（`RealLLMAdapter` + `LLM_PROVIDER` 切换 + 服务端 `AIAnalysisSchema` 校验 + `POST /sessions/:id/suggest` SSE）
+- [ ] **M3** — 审批 + Timeline 持久化（`POST /actions/:id/transition` 用 shared XState 校验合法转移、非法 409；append-only Timeline；Web/RN 改打服务端）
+- [ ] **M4** — 工具执行端点（Mock CRM 进程内 stub；`POST /actions/:id/execute`；幂等 idempotency key；失败/人工→补偿回滚）
 
 ## 下一步（接手者先做这个）
 
-> ✅ **§14 全部 11 步已完成。** 项目进入收尾/验收态，没有"下一个 Step"。后续若继续，属 frozen spec 之外的增强（需人类立项），例如：补 README 截图、真实 LLM（Hono + Vercel AI SDK）、真实 RN 远程推送、真实持久化与跨端同步。任何此类改动都**超出当前 frozen spec 范围**，须先向人类报告并立项，不得擅自扩范围。
+> ▶ **从 M2 开始**，先读 `docs/adr/0002-v0.2-backend-vertical-slice.md`（§2 已固化 LLM provider/key/SSE/确定性隔离方向）。M2 一个独立 PR，DoD 绿了再进 M3。
 >
-> 可选收尾小事（非必须）：在 `docs/screenshots/` 放 Web/RN 截图并在 README 引用（README 已留位说明）。
+> 接手须知（M1 留下的接缝）：
+> - 服务端运行时＝`ts-node` + `tsconfig-paths/register` + `apps/server/tsconfig.json` 的 `moduleTypes`（强制 shared/mock-ai 的 `.ts` 按 cjs 加载，绕过其 `package.json "type":"module"`）。回退方案＝SWC（见 ADR-0002 §5）。
+> - 服务端消费 shared 的同一份 `AIAnalysisSchema` / `approvalMachine` / `requiresMobileApproval`，**不得另起平行规则**（任务书 §0）。
+> - 真模型只本地 smoke、不入 CI；CI 已为 server typecheck 的 `prisma generate` 注入 throwaway `DATABASE_URL`（见 `.github/workflows/ci.yml`）。
+> - `apps/server/.env` 本地用（gitignored）；`.env.example` 已占位 M2 的 `LLM_PROVIDER`/key。
 
 ## Step 清单（对应 PRD §14）
 

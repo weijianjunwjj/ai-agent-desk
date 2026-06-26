@@ -1,0 +1,51 @@
+// AI Agent Desk v0.2 — the server is the authority for ToolAction state and the
+// Timeline audit trail. Columns mirror @ai-agent-desk/shared (ToolAction /
+// TimelineEvent) 1:1. Typed params (per ToolActionType) and heterogeneous audit
+// snapshots are stored as JSON *text* columns and re-validated through the shared
+// Zod schemas at the read/write boundary — there is no parallel rule in the
+// server (v0.2 §0). src/prisma/prisma.alignment.test.ts asserts these column
+// sets stay in sync with the shared schemas, so a hand-copy drift fails CI.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ToolAction {
+  id               String  @id
+  conversationId   String
+  analysisId       String
+  type             String
+  title            String
+  reason           String
+  riskLevel        String
+  status           String
+  requiresApproval Boolean
+  approvedBy       String?
+  approvedAt       String?
+  executedAt       String?
+  failedReason     String?
+  createdAt        String
+  updatedAt        String
+  params           String
+  originalParams   String
+  editedParams     String?
+}
+
+model TimelineEvent {
+  id             String  @id
+  conversationId String
+  actionId       String?
+  eventType      String
+  title          String
+  description    String
+  operatorType   String
+  operatorName   String
+  beforeSnapshot String?
+  afterSnapshot  String?
+  createdAt      String
+}

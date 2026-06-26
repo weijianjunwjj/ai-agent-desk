@@ -1,0 +1,28 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false,
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
+    "target": "ES2022",
+    "types": ["node"],
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@ai-agent-desk/shared": ["../../packages/shared/src/index.ts"],
+      "@ai-agent-desk/mock-ai": ["../../packages/mock-ai/src/index.ts"]
+    }
+  },
+  "include": ["src"],
+  "ts-node": {
+    "transpileOnly": true,
+    "require": ["tsconfig-paths/register"],
+    "moduleTypes": {
+      "../../packages/shared/src/**/*.ts": "cjs",
+      "../../packages/mock-ai/src/**/*.ts": "cjs"
+    }
+  }
+}

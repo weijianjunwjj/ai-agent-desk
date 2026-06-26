@@ -13,3 +13,4 @@ export * from './approval-task';
 export * from './approval-routing';
 export * from './approval-machine';
 export * from './schema-fields';
+export * from './llm-adapter';
